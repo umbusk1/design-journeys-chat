@@ -407,33 +407,37 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input + Footer */}
-          <div className="border-t border-white/10 px-4 pt-4 pb-3 bg-slate-900/50 backdrop-blur-sm">
-            <div className="max-w-3xl mx-auto flex gap-3">
-              <input type="text" value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarTexto(input)}
-                placeholder="Pregunta sobre Systemic Design..."
-                disabled={cargando}
-                className="flex-1 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
-              <button onClick={() => enviarTexto(input)}
-                disabled={cargando || !input.trim()}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
-                Enviar
-              </button>
+          {/* Input — solo visible cuando hay mensajes activos */}
+          {mensajes.length > 0 && (
+            <div className="border-t border-white/10 px-4 py-4 bg-slate-900/50 backdrop-blur-sm">
+              <div className="max-w-3xl mx-auto flex gap-3">
+                <input type="text" value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarTexto(input)}
+                  placeholder="Pregunta sobre Systemic Design..."
+                  disabled={cargando}
+                  className="flex-1 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
+                <button onClick={() => enviarTexto(input)}
+                  disabled={cargando || !input.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
+                  Enviar
+                </button>
+              </div>
             </div>
-            <footer className="max-w-3xl mx-auto mt-3 flex flex-col sm:flex-row items-center justify-between gap-1">
-              <p className="text-slate-500 text-xs">
-                Vibe-coded by{' '}
-                <a href="https://umbusk.com/" target="_blank" rel="noopener noreferrer"
-                  className="text-emerald-500 hover:text-emerald-400 transition">
-                  UMBUSK
-                </a>
-                {' '}and Claude from Anthropic.
-              </p>
-              <p className="text-slate-600 text-xs">© 2026 Umbusk, LLC. Todos los derechos reservados.</p>
-            </footer>
-          </div>
+          )}
+
+          {/* Footer */}
+          <footer className="border-t border-white/5 px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-1 bg-slate-900/30">
+            <p className="text-slate-500 text-xs">
+              Vibe-coded by{' '}
+              <a href="https://umbusk.com/" target="_blank" rel="noopener noreferrer"
+                className="text-emerald-500 hover:text-emerald-400 transition">
+                UMBUSK
+              </a>
+              {' '}and Claude from Anthropic.
+            </p>
+            <p className="text-slate-600 text-xs">© 2026 Umbusk, LLC. Todos los derechos reservados.</p>
+          </footer>
         </div>
       </div>
     </div>
