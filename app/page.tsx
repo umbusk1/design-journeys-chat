@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
 
 interface Mensaje {
   rol: 'user' | 'assistant'
@@ -23,10 +24,14 @@ interface Conversacion {
   ultimo_mensaje: string
 }
 
+interface Stats {
+  usuarios: Array<{ id: number; nombre: string; tokensTotal: number; costoUSD: number; totalRespuestas: number }>
+  totales: { tokensTotal: number; costoUSD: number }
+}
+
 const MAPA_CURSO = [
   {
-    num: 1,
-    nombre: 'Introducción',
+    num: 1, nombre: 'Introducción',
     prompt: 'Dame una introducción general al curso de Systemic Design y sus conceptos fundamentales',
     lecciones: [
       { nombre: 'Introducción al curso', prompt: 'Explícame qué es el curso de Systemic Design for Tackling Complexity y qué vamos a aprender' },
@@ -35,8 +40,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 2,
-    nombre: 'Framing',
+    num: 2, nombre: 'Framing',
     prompt: 'Dame una visión general del estadio [1] Framing — Enmarcar el sistema',
     lecciones: [
       { nombre: 'Enmarcar el sistema', prompt: 'Explícame cómo se enmarca un sistema en diseño sistémico y qué herramientas se usan en el estadio Framing' },
@@ -45,8 +49,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 3,
-    nombre: 'Listening',
+    num: 3, nombre: 'Listening',
     prompt: 'Dame una visión general del estadio [2] Listening — Escuchar el sistema',
     lecciones: [
       { nombre: 'Hacer investigación', prompt: 'Explícame cómo se investiga en diseño sistémico: metodologías, enfoques y el diamante de investigación' },
@@ -55,8 +58,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 4,
-    nombre: 'Understanding',
+    num: 4, nombre: 'Understanding',
     prompt: 'Dame una visión general del estadio [3] Understanding — Comprender el sistema',
     lecciones: [
       { nombre: 'Visualización de sistemas', prompt: 'Explícame las principales herramientas de visualización sistémica: Synthesis Maps, Systemigrams y cómo elegir cuál usar' },
@@ -66,8 +68,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 5,
-    nombre: 'Envisioning',
+    num: 5, nombre: 'Envisioning',
     prompt: 'Dame una visión general del estadio [4] Envisioning — Visionar futuros deseados',
     lecciones: [
       { nombre: 'Three Horizons', prompt: 'Explícame el marco Three Horizons de Bill Sharpe: H1, H2 y H3, cómo coexisten y cómo se usa en diseño sistémico' },
@@ -77,8 +78,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 6,
-    nombre: 'Possibility Space',
+    num: 6, nombre: 'Possibility Space',
     prompt: 'Dame una visión general del estadio [5] Exploring — Espacio de posibilidades',
     lecciones: [
       { nombre: 'Synthesis Mapping', prompt: 'Explícame cómo se usa el Synthesis Mapping en el estadio de exploración y cómo conecta con las intervenciones' },
@@ -88,8 +88,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 7,
-    nombre: 'Planning',
+    num: 7, nombre: 'Planning',
     prompt: 'Dame una visión general del estadio [6] Planning — Planificar el cambio sistémico',
     lecciones: [
       { nombre: 'Theory of Change', prompt: 'Explícame la Theory of Change (TOSCA) en diseño sistémico: niveles, supuestos y cómo se construye' },
@@ -98,8 +97,7 @@ const MAPA_CURSO = [
     ]
   },
   {
-    num: 8,
-    nombre: 'Transition',
+    num: 8, nombre: 'Transition',
     prompt: 'Dame una visión general del estadio [7] Fostering — Implementar la transición sistémica',
     lecciones: [
       { nombre: 'Collaboration Model', prompt: 'Explícame el Collaboration Model: cómo diseñar la colaboración entre actores para implementar el cambio sistémico' },
@@ -117,6 +115,7 @@ export default function ChatPage() {
   const [conversacionId, setConversacionId] = useState<number | null>(null)
   const [historial, setHistorial] = useState<Conversacion[]>([])
   const [sidebarAbierto, setSidebarAbierto] = useState(false)
+  const [stats, setStats] = useState<Stats | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -127,6 +126,7 @@ export default function ChatPage() {
     setUsuario(p)
     cargarHistorial(p.id)
     iniciarConversacion(p.id)
+    if (p.id === 1) cargarStats()
   }, [])
 
   useEffect(() => {
@@ -138,6 +138,14 @@ export default function ChatPage() {
       const r = await fetch(`/api/conversaciones/listar?usuarioId=${uid}`)
       const d = await r.json()
       setHistorial(d.conversaciones || [])
+    } catch (e) { console.error(e) }
+  }
+
+  async function cargarStats() {
+    try {
+      const r = await fetch('/api/stats/tokens')
+      const d = await r.json()
+      setStats(d)
     } catch (e) { console.error(e) }
   }
 
@@ -195,7 +203,10 @@ export default function ChatPage() {
       const d = await r.json()
       if (d.respuesta) {
         setMensajes(prev => [...prev, { rol: 'assistant', contenido: d.respuesta }])
-        if (usuario) cargarHistorial(usuario.id)
+        if (usuario) {
+          cargarHistorial(usuario.id)
+          if (usuario.id === 1) cargarStats()
+        }
       }
     } catch (err) {
       setMensajes(prev => [...prev, { rol: 'assistant', contenido: 'Hubo un error. Intenta de nuevo.' }])
@@ -215,8 +226,8 @@ export default function ChatPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
 
       {/* Header */}
-      <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-3">
+      <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10 gap-2">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button onClick={() => setSidebarAbierto(!sidebarAbierto)}
             className="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -226,10 +237,35 @@ export default function ChatPage() {
           <span className="text-xl">🌿</span>
           <div>
             <h1 className="text-white font-semibold text-sm tracking-wide">Design Journeys</h1>
-            <p className="text-slate-400 text-xs">Compañero de estudio · Systemic Design</p>
+            <p className="text-slate-400 text-xs hidden sm:block">Compañero de estudio · Systemic Design</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Contador de tokens — solo para Moisés (id=1) */}
+        {usuario?.id === 1 && stats && (
+          <div className="flex items-center gap-4 flex-1 justify-center overflow-x-auto">
+            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
+              <div className="text-center">
+                <p className="text-slate-500 text-xs leading-none mb-0.5">Total tokens</p>
+                <p className="text-slate-300 text-xs font-mono font-semibold">{stats.totales.tokensTotal.toLocaleString()}</p>
+              </div>
+              <div className="w-px h-6 bg-white/10"/>
+              <div className="text-center">
+                <p className="text-slate-500 text-xs leading-none mb-0.5">Costo total</p>
+                <p className="text-emerald-400 text-xs font-mono font-semibold">${stats.totales.costoUSD.toFixed(4)}</p>
+              </div>
+              <div className="w-px h-6 bg-white/10"/>
+              {stats.usuarios.map(u => (
+                <div key={u.id} className="text-center">
+                  <p className="text-slate-500 text-xs leading-none mb-0.5">{u.nombre.split(' ')[0]}</p>
+                  <p className="text-slate-400 text-xs font-mono">{u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span></p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 flex-shrink-0">
           <button onClick={() => usuario && iniciarConversacion(usuario.id)}
             className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
             + Nueva
@@ -277,7 +313,7 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-6 w-full">
 
-            {/* Mapa del curso — pantalla de inicio */}
+            {/* Mapa del curso */}
             {mensajes.length === 0 && (
               <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-6">
@@ -286,7 +322,6 @@ export default function ChatPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {MAPA_CURSO.map(cap => (
                     <div key={cap.num} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                      {/* Cabecera del capítulo */}
                       <button
                         onClick={() => enviarTexto(cap.prompt)}
                         className="w-full text-left px-3 py-3 hover:bg-emerald-500/10 border-b border-white/10 transition group">
@@ -295,7 +330,6 @@ export default function ChatPage() {
                           <span className="text-white text-xs font-semibold group-hover:text-emerald-300 transition">{cap.nombre}</span>
                         </div>
                       </button>
-                      {/* Lecciones */}
                       <div className="px-2 py-2 flex flex-col gap-1">
                         {cap.lecciones.map((lec, i) => (
                           <button
@@ -334,9 +368,8 @@ export default function ChatPage() {
                         prose-li:text-slate-200 prose-li:marker:text-emerald-400
                         prose-code:text-emerald-300 prose-code:bg-white/10 prose-code:px-1 prose-code:rounded
                         prose-blockquote:border-l-emerald-500 prose-blockquote:text-slate-400
-                        prose-hr:border-white/10 prose-table:text-slate-200
-                        prose-th:text-emerald-300 prose-td:border-white/10">
-                        <ReactMarkdown>{msg.contenido}</ReactMarkdown>
+                        prose-hr:border-white/10">
+                        <ReactMarkdown rehypePlugins={[rehypeRaw]}>{msg.contenido}</ReactMarkdown>
                       </div>
                     ) : msg.contenido}
                   </div>
