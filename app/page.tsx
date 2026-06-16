@@ -226,8 +226,8 @@ export default function ChatPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
 
       {/* Header */}
-      <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-sm z-10 gap-2">
-        <div className="flex items-center gap-3 flex-shrink-0">
+      <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-sm z-20">
+        <div className="flex items-center gap-3">
           <button onClick={() => setSidebarAbierto(!sidebarAbierto)}
             className="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -240,32 +240,7 @@ export default function ChatPage() {
             <p className="text-slate-400 text-xs hidden sm:block">Compañero de estudio · Systemic Design</p>
           </div>
         </div>
-
-        {/* Contador de tokens — solo para Moisés (id=1) */}
-        {usuario?.id === 1 && stats && (
-          <div className="flex items-center gap-4 flex-1 justify-center overflow-x-auto">
-            <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
-              <div className="text-center">
-                <p className="text-slate-500 text-xs leading-none mb-0.5">Total tokens</p>
-                <p className="text-slate-300 text-xs font-mono font-semibold">{stats.totales.tokensTotal.toLocaleString()}</p>
-              </div>
-              <div className="w-px h-6 bg-white/10"/>
-              <div className="text-center">
-                <p className="text-slate-500 text-xs leading-none mb-0.5">Costo total</p>
-                <p className="text-emerald-400 text-xs font-mono font-semibold">${stats.totales.costoUSD.toFixed(4)}</p>
-              </div>
-              <div className="w-px h-6 bg-white/10"/>
-              {stats.usuarios.map(u => (
-                <div key={u.id} className="text-center">
-                  <p className="text-slate-500 text-xs leading-none mb-0.5">{u.nombre.split(' ')[0]}</p>
-                  <p className="text-slate-400 text-xs font-mono">{u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span></p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center gap-3">
           <button onClick={() => usuario && iniciarConversacion(usuario.id)}
             className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
             + Nueva
@@ -275,38 +250,50 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Sidebar */}
+        {/* Sidebar — overlay en móvil, fijo en desktop */}
         {sidebarAbierto && (
-          <aside className="w-72 border-r border-white/10 bg-slate-900/60 flex flex-col overflow-y-auto flex-shrink-0">
-            <div className="px-4 py-3 border-b border-white/10">
-              <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Conversaciones anteriores</p>
-            </div>
-            {historial.length === 0
-              ? <p className="text-slate-500 text-xs px-4 py-6 text-center">No hay conversaciones anteriores</p>
-              : <div className="flex flex-col gap-1 p-2">
-                  {historial.map(conv => (
-                    <div key={conv.id}
-                      onClick={() => abrirConversacion(conv)}
-                      className={`group flex items-start justify-between px-3 py-2.5 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
-                      <div className="flex-1 min-w-0 mr-2">
-                        <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
+          <>
+            {/* Overlay oscuro en móvil */}
+            <div
+              className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+              onClick={() => setSidebarAbierto(false)}
+            />
+            <aside className="absolute lg:relative w-72 h-full border-r border-white/10 bg-slate-900 lg:bg-slate-900/60 flex flex-col overflow-y-auto flex-shrink-0 z-20">
+              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Conversaciones anteriores</p>
+                <button onClick={() => setSidebarAbierto(false)} className="text-slate-500 hover:text-white transition lg:hidden">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              {historial.length === 0
+                ? <p className="text-slate-500 text-xs px-4 py-6 text-center">No hay conversaciones anteriores</p>
+                : <div className="flex flex-col gap-1 p-2">
+                    {historial.map(conv => (
+                      <div key={conv.id}
+                        onClick={() => abrirConversacion(conv)}
+                        className={`group flex items-start justify-between px-3 py-2.5 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
+                        <div className="flex-1 min-w-0 mr-2">
+                          <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
+                          <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
+                        </div>
+                        <button
+                          onClick={(e) => eliminarConversacion(e, conv.id)}
+                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5"
+                          title="Eliminar">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                          </svg>
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => eliminarConversacion(e, conv.id)}
-                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5"
-                        title="Eliminar">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-            }
-          </aside>
+                    ))}
+                  </div>
+              }
+            </aside>
+          </>
         )}
 
         {/* Área principal */}
@@ -316,6 +303,30 @@ export default function ChatPage() {
             {/* Mapa del curso */}
             {mensajes.length === 0 && (
               <div className="max-w-6xl mx-auto">
+
+                {/* Contador tokens — solo Moisés, encima del mapa */}
+                {usuario?.id === 1 && stats && (
+                  <div className="mb-5 flex flex-wrap items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                    <div>
+                      <p className="text-slate-500 text-xs leading-none mb-1">Total tokens</p>
+                      <p className="text-slate-300 text-xs font-mono font-semibold">{stats.totales.tokensTotal.toLocaleString()}</p>
+                    </div>
+                    <div className="w-px h-6 bg-white/10 hidden sm:block"/>
+                    <div>
+                      <p className="text-slate-500 text-xs leading-none mb-1">Costo total</p>
+                      <p className="text-emerald-400 text-xs font-mono font-semibold">${stats.totales.costoUSD.toFixed(4)}</p>
+                    </div>
+                    <div className="w-px h-6 bg-white/10 hidden sm:block"/>
+                    {stats.usuarios.map(u => (
+                      <div key={u.id}>
+                        <p className="text-slate-500 text-xs leading-none mb-1">{u.nombre.split(' ')[0]}</p>
+                        <p className="text-slate-400 text-xs font-mono">
+                          {u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="text-center mb-6">
                   <p className="text-slate-400 text-sm">Selecciona un capítulo o lección para comenzar</p>
                 </div>
