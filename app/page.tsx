@@ -50,6 +50,30 @@ export default function ChatPage() {
     }
   }
 
+  async function enviarTexto(texto: string) {
+    if (!texto.trim() || !conversacionId || cargando) return
+    const nuevoMensaje: Mensaje = { rol: 'user', contenido: texto }
+    setMensajes(prev => [...prev, nuevoMensaje])
+    setInput('')
+    setCargando(true)
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensaje: texto, conversacionId, usuarioId: usuario?.id }),
+      })
+      const data = await res.json()
+      if (data.respuesta) {
+        setMensajes(prev => [...prev, { rol: 'assistant', contenido: data.respuesta }])
+      }
+    } catch (err) {
+      console.error('Error:', err)
+      setMensajes(prev => [...prev, { rol: 'assistant', contenido: 'Hubo un error. Intenta de nuevo.' }])
+    } finally {
+      setCargando(false)
+    }
+  }
+
   async function enviarMensaje() {
     if (!input.trim() || !conversacionId || cargando) return
     const nuevoMensaje: Mensaje = { rol: 'user', contenido: input }
@@ -121,7 +145,7 @@ export default function ChatPage() {
               ].map(s => (
                 <button
                   key={s}
-                  onClick={() => setInput(s)}
+                  onClick={() => enviarTexto(s)}
                   className="text-left text-sm bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/30 rounded-xl px-4 py-3 text-slate-300 transition"
                 >
                   {s}
