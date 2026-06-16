@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
       ORDER BY u.id
     `
 
-    const usuarios = porUsuario.map((u: {
+    const usuarios = (porUsuario as Array<{
       id: number; nombre: string;
       total_input: number; total_output: number; total_respuestas: number
-    }) => {
+    }>).map((u) => {
       const input = Number(u.total_input)
       const output = Number(u.total_output)
       const costoUSD = (input * PRECIO_INPUT + output * PRECIO_OUTPUT) / 1_000_000
