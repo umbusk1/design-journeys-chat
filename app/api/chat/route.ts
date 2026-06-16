@@ -9,7 +9,7 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { mensaje, conversacionId, usuarioId } = await req.json()
+    const { mensaje, conversacionId, usuarioId, esPrimerMensaje } = await req.json()
 
     if (!mensaje || !conversacionId || !usuarioId) {
       return NextResponse.json(
@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
       INSERT INTO mensajes (conversacion_id, rol, contenido)
       VALUES (${conversacionId}, 'user', ${mensaje})
     `
+
+    // Si es el primer mensaje, actualizar el título de la conversación
+    if (esPrimerMensaje) {
+      const titulo = mensaje.length > 60 ? mensaje.substring(0, 60) + '…' : mensaje
+      await sql`
+        UPDATE conversaciones SET titulo = ${titulo} WHERE id = ${conversacionId}
+      `
+    }
 
     // Obtener historial de la conversación
     const historial = await sql`
