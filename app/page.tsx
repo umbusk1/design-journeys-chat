@@ -5,31 +5,18 @@ import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 
-interface Mensaje {
-  rol: 'user' | 'assistant'
-  contenido: string
-}
-
-interface Usuario {
-  id: number
-  nombre: string
-  email: string
-}
-
+interface Mensaje { rol: 'user' | 'assistant'; contenido: string }
+interface Usuario { id: number; nombre: string; email: string }
 interface Conversacion {
-  id: number
-  titulo: string
-  created_at: string
-  total_mensajes: number
-  ultimo_mensaje: string
-  usuario_id: number
-  autor_nombre: string
+  id: number; titulo: string; created_at: string
+  total_mensajes: number; ultimo_mensaje: string
+  usuario_id: number; autor_nombre: string
 }
-
 interface Stats {
   usuarios: Array<{ id: number; nombre: string; tokensTotal: number; costoUSD: number; totalRespuestas: number }>
   totales: { tokensTotal: number; costoUSD: number }
 }
+interface Recurso { id: number; tipo: string; titulo: string; url: string }
 
 const MAPA_CURSO = [
   {
@@ -109,6 +96,8 @@ const MAPA_CURSO = [
   },
 ]
 
+function leccionId(capNum: number, lecIdx: number) { return `cap${capNum}_lec${lecIdx}` }
+
 export default function ChatPage() {
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
@@ -118,6 +107,10 @@ export default function ChatPage() {
   const [historial, setHistorial] = useState<Conversacion[]>([])
   const [sidebarAbierto, setSidebarAbierto] = useState(false)
   const [stats, setStats] = useState<Stats | null>(null)
+  const [conteoRecursos, setConteoRecursos] = useState<Record<string, number>>({})
+  const [modalInfo, setModalInfo] = useState<{ leccionId: string; nombre: string } | null>(null)
+  const [recursosModal, setRecursosModal] = useState<Recurso[]>([])
+  const [cargandoRecursos, setCargandoRecursos] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -128,12 +121,11 @@ export default function ChatPage() {
     setUsuario(p)
     cargarHistorial(p.id)
     iniciarConversacion(p.id)
+    cargarConteoRecursos()
     if (p.id === 1) cargarStats()
   }, [])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensajes])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [mensajes])
 
   async function cargarHistorial(uid: number) {
     try {
@@ -149,6 +141,26 @@ export default function ChatPage() {
       const d = await r.json()
       setStats(d)
     } catch (e) { console.error(e) }
+  }
+
+  async function cargarConteoRecursos() {
+    try {
+      const r = await fetch('/api/recursos')
+      const d = await r.json()
+      const mapa: Record<string, number> = {}
+      for (const c of (d.conteos || [])) mapa[c.leccion_id] = Number(c.total)
+      setConteoRecursos(mapa)
+    } catch (e) { console.error(e) }
+  }
+
+  async function abrirModal(lid: string, nombre: string) {
+    setModalInfo({ leccionId: lid, nombre })
+    setCargandoRecursos(true)
+    setRecursosModal([])
+    const r = await fetch(`/api/recursos?leccionId=${lid}`)
+    const d = await r.json()
+    setRecursosModal(d.recursos || [])
+    setCargandoRecursos(false)
   }
 
   async function iniciarConversacion(uid: number) {
@@ -171,8 +183,7 @@ export default function ChatPage() {
       const r = await fetch(`/api/conversaciones/mensajes?conversacionId=${conv.id}`)
       const d = await r.json()
       setMensajes(d.mensajes.map((m: { rol: string; contenido: string }) => ({
-        rol: m.rol as 'user' | 'assistant',
-        contenido: m.contenido,
+        rol: m.rol as 'user' | 'assistant', contenido: m.contenido,
       })))
     } catch (e) { console.error(e) }
   }
@@ -180,19 +191,14 @@ export default function ChatPage() {
   async function eliminarConversacion(e: React.MouseEvent, convId: number) {
     e.stopPropagation()
     if (!confirm('¿Eliminar esta conversación?')) return
-    try {
-      await fetch(`/api/conversaciones/eliminar?conversacionId=${convId}`, { method: 'DELETE' })
-      if (conversacionId === convId) {
-        setMensajes([])
-        if (usuario) iniciarConversacion(usuario.id)
-      }
-      if (usuario) cargarHistorial(usuario.id)
-    } catch (e) { console.error(e) }
+    await fetch(`/api/conversaciones/eliminar?conversacionId=${convId}`, { method: 'DELETE' })
+    if (conversacionId === convId) { setMensajes([]); if (usuario) iniciarConversacion(usuario.id) }
+    if (usuario) cargarHistorial(usuario.id)
   }
 
   async function enviarTexto(texto: string) {
     if (!texto.trim() || !conversacionId || cargando) return
-    const esFirstMsg = mensajes.length === 0
+    const esFirst = mensajes.length === 0
     setMensajes(prev => [...prev, { rol: 'user', contenido: texto }])
     setInput('')
     setCargando(true)
@@ -200,28 +206,27 @@ export default function ChatPage() {
       const r = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensaje: texto, conversacionId, usuarioId: usuario?.id, esPrimerMensaje: esFirstMsg }),
+        body: JSON.stringify({ mensaje: texto, conversacionId, usuarioId: usuario?.id, esPrimerMensaje: esFirst }),
       })
       const d = await r.json()
       if (d.respuesta) {
         setMensajes(prev => [...prev, { rol: 'assistant', contenido: d.respuesta }])
-        if (usuario) {
-          cargarHistorial(usuario.id)
-          if (usuario.id === 1) cargarStats()
-        }
+        if (usuario) { cargarHistorial(usuario.id); if (usuario.id === 1) cargarStats() }
       }
-    } catch (err) {
-      setMensajes(prev => [...prev, { rol: 'assistant', contenido: 'Hubo un error. Intenta de nuevo.' }])
-    } finally { setCargando(false) }
+    } catch { setMensajes(prev => [...prev, { rol: 'assistant', contenido: 'Hubo un error. Intenta de nuevo.' }]) }
+    finally { setCargando(false) }
   }
 
-  function cerrarSesion() {
-    localStorage.removeItem('usuario')
-    router.push('/login')
-  }
+  function cerrarSesion() { localStorage.removeItem('usuario'); router.push('/login') }
 
   function formatFecha(f: string) {
     return new Date(f).toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }
+
+  const tiposInfo: Record<string, { label: string; icon: string; color: string }> = {
+    grafico: { label: 'Gráficos', icon: '🖼️', color: 'text-violet-400' },
+    pdf: { label: 'PDFs', icon: '📄', color: 'text-red-400' },
+    youtube: { label: 'YouTube', icon: '▶️', color: 'text-red-500' },
   }
 
   return (
@@ -243,6 +248,12 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {usuario?.id === 1 && (
+            <button onClick={() => router.push('/admin')}
+              className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
+              ⚙️ Admin
+            </button>
+          )}
           <button onClick={() => usuario && iniciarConversacion(usuario.id)}
             className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
             + Nueva
@@ -254,14 +265,10 @@ export default function ChatPage() {
 
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Sidebar — overlay en móvil, fijo en desktop */}
+        {/* Sidebar overlay */}
         {sidebarAbierto && (
           <>
-            {/* Overlay oscuro en móvil */}
-            <div
-              className="fixed inset-0 bg-black/50 z-10 lg:hidden"
-              onClick={() => setSidebarAbierto(false)}
-            />
+            <div className="fixed inset-0 bg-black/50 z-10 lg:hidden" onClick={() => setSidebarAbierto(false)} />
             <aside className="absolute lg:relative w-72 h-full border-r border-white/10 bg-slate-900 lg:bg-slate-900/60 flex flex-col overflow-y-auto flex-shrink-0 z-20">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Conversaciones anteriores</p>
@@ -278,11 +285,9 @@ export default function ChatPage() {
                       const esMia = conv.usuario_id === usuario?.id
                       const iniciales = conv.autor_nombre?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
                       return (
-                        <div key={conv.id}
-                          onClick={() => abrirConversacion(conv)}
+                        <div key={conv.id} onClick={() => abrirConversacion(conv)}
                           className={`group flex items-start justify-between px-3 py-2.5 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
                           <div className="flex items-start gap-2 flex-1 min-w-0 mr-2">
-                            {/* Avatar con iniciales del autor */}
                             <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${esMia ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
                               {iniciales}
                             </div>
@@ -292,10 +297,8 @@ export default function ChatPage() {
                             </div>
                           </div>
                           {esMia && (
-                            <button
-                              onClick={(e) => eliminarConversacion(e, conv.id)}
-                              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5"
-                              title="Eliminar">
+                            <button onClick={(e) => eliminarConversacion(e, conv.id)}
+                              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
                               </svg>
@@ -318,7 +321,7 @@ export default function ChatPage() {
             {mensajes.length === 0 && (
               <div className="max-w-6xl mx-auto">
 
-                {/* Contador tokens — solo Moisés, encima del mapa */}
+                {/* Contador tokens — solo Moisés */}
                 {usuario?.id === 1 && stats && (
                   <div className="mb-5 flex flex-wrap items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                     <div>
@@ -334,21 +337,20 @@ export default function ChatPage() {
                     {stats.usuarios.map(u => (
                       <div key={u.id}>
                         <p className="text-slate-500 text-xs leading-none mb-1">{u.nombre.split(' ')[0]}</p>
-                        <p className="text-slate-400 text-xs font-mono">
-                          {u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span>
-                        </p>
+                        <p className="text-slate-400 text-xs font-mono">{u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span></p>
                       </div>
                     ))}
                   </div>
                 )}
+
                 <div className="text-center mb-6">
                   <p className="text-slate-400 text-sm">Selecciona un capítulo o lección para comenzar</p>
                 </div>
+
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {MAPA_CURSO.map(cap => (
                     <div key={cap.num} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                      <button
-                        onClick={() => enviarTexto(cap.prompt)}
+                      <button onClick={() => enviarTexto(cap.prompt)}
                         className="w-full text-left px-3 py-3 hover:bg-emerald-500/10 border-b border-white/10 transition group">
                         <div className="flex items-center gap-2">
                           <span className="text-emerald-400 text-xs font-mono font-bold">{String(cap.num).padStart(2,'0')}</span>
@@ -356,20 +358,34 @@ export default function ChatPage() {
                         </div>
                       </button>
                       <div className="px-2 py-2 flex flex-col gap-1">
-                        {cap.lecciones.map((lec, i) => (
-                          <button
-                            key={i}
-                            onClick={() => enviarTexto(lec.prompt)}
-                            className="text-left text-xs text-slate-400 hover:text-emerald-300 hover:bg-white/5 rounded-lg px-2 py-1.5 transition leading-snug">
-                            {lec.nombre}
-                          </button>
-                        ))}
+                        {cap.lecciones.map((lec, i) => {
+                          const lid = leccionId(cap.num, i)
+                          const tieneRecursos = (conteoRecursos[lid] || 0) > 0
+                          return (
+                            <div key={i} className="flex items-center gap-1 group/lec">
+                              <button onClick={() => enviarTexto(lec.prompt)}
+                                className="flex-1 text-left text-xs text-slate-400 hover:text-emerald-300 hover:bg-white/5 rounded-lg px-2 py-1.5 transition leading-snug">
+                                {lec.nombre}
+                              </button>
+                              {tieneRecursos && (
+                                <button
+                                  onClick={() => abrirModal(lid, lec.nombre)}
+                                  title="Ver recursos"
+                                  className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/10 transition opacity-60 group-hover/lec:opacity-100">
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* Input inline debajo del mapa */}
+                {/* Input inline */}
                 <div className="mt-6 flex gap-3 max-w-2xl mx-auto">
                   <input type="text" value={input}
                     onChange={e => setInput(e.target.value)}
@@ -377,8 +393,7 @@ export default function ChatPage() {
                     placeholder="O escribe tu pregunta aquí..."
                     disabled={cargando}
                     className="flex-1 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
-                  <button onClick={() => enviarTexto(input)}
-                    disabled={cargando || !input.trim()}
+                  <button onClick={() => enviarTexto(input)} disabled={cargando || !input.trim()}
                     className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
                     Enviar
                   </button>
@@ -393,11 +408,7 @@ export default function ChatPage() {
                   {msg.rol === 'assistant' && (
                     <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-sm mr-3 mt-1 flex-shrink-0">🌿</div>
                   )}
-                  <div className={`max-w-[85%] rounded-2xl px-5 py-4 text-sm leading-relaxed ${
-                    msg.rol === 'user'
-                      ? 'bg-emerald-600 text-white rounded-br-sm'
-                      : 'bg-white/8 border border-white/10 text-slate-100 rounded-bl-sm'
-                  }`}>
+                  <div className={`max-w-[85%] rounded-2xl px-5 py-4 text-sm leading-relaxed ${msg.rol === 'user' ? 'bg-emerald-600 text-white rounded-br-sm' : 'bg-white/8 border border-white/10 text-slate-100 rounded-bl-sm'}`}>
                     {msg.rol === 'assistant' ? (
                       <div className="prose prose-invert prose-sm max-w-none
                         prose-headings:text-emerald-300 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
@@ -415,7 +426,6 @@ export default function ChatPage() {
                   </div>
                 </div>
               ))}
-
               {cargando && (
                 <div className="flex justify-start">
                   <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-sm mr-3 flex-shrink-0">🌿</div>
@@ -432,7 +442,7 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input — solo visible cuando hay mensajes activos */}
+          {/* Input — solo cuando hay mensajes */}
           {mensajes.length > 0 && (
             <div className="border-t border-white/10 px-4 py-4 bg-slate-900/50 backdrop-blur-sm">
               <div className="max-w-3xl mx-auto flex gap-3">
@@ -442,8 +452,7 @@ export default function ChatPage() {
                   placeholder="Pregunta sobre Systemic Design..."
                   disabled={cargando}
                   className="flex-1 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
-                <button onClick={() => enviarTexto(input)}
-                  disabled={cargando || !input.trim()}
+                <button onClick={() => enviarTexto(input)} disabled={cargando || !input.trim()}
                   className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
                   Enviar
                 </button>
@@ -455,16 +464,68 @@ export default function ChatPage() {
           <footer className="border-t border-white/5 px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-1 bg-slate-900/30">
             <p className="text-slate-500 text-xs">
               Vibe-coded by{' '}
-              <a href="https://umbusk.com/" target="_blank" rel="noopener noreferrer"
-                className="text-emerald-500 hover:text-emerald-400 transition">
-                UMBUSK
-              </a>
+              <a href="https://umbusk.com/" target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 transition">UMBUSK</a>
               {' '}and Claude from Anthropic.
             </p>
             <p className="text-slate-600 text-xs">© 2026 Umbusk, LLC. Todos los derechos reservados.</p>
           </footer>
         </div>
       </div>
+
+      {/* Modal de recursos */}
+      {modalInfo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setModalInfo(null)}>
+          <div className="bg-slate-800 border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            {/* Header modal */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <div>
+                <h3 className="text-white font-semibold text-sm">{modalInfo.nombre}</h3>
+                <p className="text-slate-400 text-xs mt-0.5">Recursos de referencia</p>
+              </div>
+              <button onClick={() => setModalInfo(null)}
+                className="text-slate-400 hover:text-white transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Contenido modal */}
+            <div className="px-5 py-4 space-y-4 max-h-96 overflow-y-auto">
+              {cargandoRecursos ? (
+                <p className="text-slate-400 text-sm text-center py-4">Cargando recursos...</p>
+              ) : (
+                ['grafico', 'pdf', 'youtube'].map(tipo => {
+                  const items = recursosModal.filter(r => r.tipo === tipo)
+                  if (items.length === 0) return null
+                  const info = tiposInfo[tipo]
+                  return (
+                    <div key={tipo}>
+                      <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${info.color}`}>
+                        {info.icon} {info.label}
+                      </p>
+                      <div className="space-y-1.5">
+                        {items.map(r => (
+                          <a key={r.id} href={r.url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition group">
+                            <span className="text-base flex-shrink-0">{info.icon}</span>
+                            <span className="text-slate-200 text-sm group-hover:text-white transition flex-1 truncate">{r.titulo}</span>
+                            <svg className="flex-shrink-0 text-slate-500 group-hover:text-slate-300 transition" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
