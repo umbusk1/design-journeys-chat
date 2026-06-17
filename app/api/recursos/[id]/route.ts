@@ -3,10 +3,10 @@ import { sql } from '@/lib/db'
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id
+    const { id } = await params
     await sql`DELETE FROM recursos WHERE id = ${id}`
     return NextResponse.json({ ok: true })
   } catch (error) {
