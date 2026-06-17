@@ -22,6 +22,8 @@ interface Conversacion {
   created_at: string
   total_mensajes: number
   ultimo_mensaje: string
+  usuario_id: number
+  autor_nombre: string
 }
 
 interface Stats {
@@ -272,24 +274,36 @@ export default function ChatPage() {
               {historial.length === 0
                 ? <p className="text-slate-500 text-xs px-4 py-6 text-center">No hay conversaciones anteriores</p>
                 : <div className="flex flex-col gap-1 p-2">
-                    {historial.map(conv => (
-                      <div key={conv.id}
-                        onClick={() => abrirConversacion(conv)}
-                        className={`group flex items-start justify-between px-3 py-2.5 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
-                        <div className="flex-1 min-w-0 mr-2">
-                          <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
-                          <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
+                    {historial.map((conv: Conversacion) => {
+                      const esMia = conv.usuario_id === usuario?.id
+                      const iniciales = conv.autor_nombre?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                      return (
+                        <div key={conv.id}
+                          onClick={() => abrirConversacion(conv)}
+                          className={`group flex items-start justify-between px-3 py-2.5 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
+                          <div className="flex items-start gap-2 flex-1 min-w-0 mr-2">
+                            {/* Avatar con iniciales del autor */}
+                            <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${esMia ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
+                              {iniciales}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
+                              <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
+                            </div>
+                          </div>
+                          {esMia && (
+                            <button
+                              onClick={(e) => eliminarConversacion(e, conv.id)}
+                              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5"
+                              title="Eliminar">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                              </svg>
+                            </button>
+                          )}
                         </div>
-                        <button
-                          onClick={(e) => eliminarConversacion(e, conv.id)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5"
-                          title="Eliminar">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
               }
             </aside>
