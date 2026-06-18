@@ -32,9 +32,9 @@ const MAPA_CURSO = [
     num: 2, nombre: 'Encuadre',
     prompt: 'Dame una visión general del estadio [1] Framing — Enmarcar el sistema',
     lecciones: [
-      { nombre: 'Enmarcar el sistema', prompt: 'Explícame cómo se enmarca un sistema en diseño sistémico y qué herramientas se usan en el estadio Framing' },
-      { nombre: 'Mapa de actores', prompt: 'Explícame la herramienta Actors Map: qué es, para qué sirve y cómo se construye. Propón hacer el Ejercicio 1.' },
-      { nombre: 'CLA — El iceberg', prompt: 'Explícame el Causal Layered Analysis (CLA) y sus 4 capas. Propón hacer el Ejercicio 2 con un caso real.' },
+      { nombre: 'El Antropoceno', prompt: 'Explícame cómo se enmarca un sistema en diseño sistémico y qué herramientas se usan en el estadio Framing' },
+      { nombre: 'VUCA y BANI', prompt: 'Explícame la herramienta Actors Map: qué es, para qué sirve y cómo se construye. Propón hacer el Ejercicio 1.' },
+      { nombre: 'Entendiendo el Iceberg', prompt: 'Explícame el Causal Layered Analysis (CLA) y sus 4 capas. Propón hacer el Ejercicio 2 con un caso real.' },
     ]
   },
   {
@@ -42,27 +42,25 @@ const MAPA_CURSO = [
     prompt: 'Dame una visión general del estadio [2] Listening — Escuchar el sistema',
     lecciones: [
       { nombre: 'Hacer investigación', prompt: 'Explícame cómo se investiga en diseño sistémico: metodologías, enfoques y el diamante de investigación' },
-      { nombre: 'Partes interesadas y entrevistas', prompt: 'Explícame cómo hacer Stakeholder Discovery y entrevistas contextuales en diseño sistémico' },
-      { nombre: 'Mapa de actantes', prompt: 'Explícame la herramienta Actants Map: qué diferencia a un actante de un actor y cómo se usa' },
+      { nombre: 'Análisis Causal Sistémico', prompt: 'Explícame cómo hacer Stakeholder Discovery y entrevistas contextuales en análisis causal sistémico' },
+      { nombre: 'Visualizar Sistemas', prompt: 'Explícame la herramienta Actants Map: qué diferencia a un actante de un actor y cómo se usa' },
     ]
   },
   {
     num: 4, nombre: 'Comprensión',
     prompt: 'Dame una visión general del estadio [3] Understanding — Comprender el sistema',
     lecciones: [
-      { nombre: 'Visualización de sistemas', prompt: 'Explícame las principales herramientas de visualización sistémica: Synthesis Maps, Systemigrams y cómo elegir cuál usar' },
-      { nombre: 'Diagrama de bucles causales', prompt: 'Explícame los Causal Loop Diagrams (CLD): bucles de refuerzo y balance, cómo se construyen. Propón hacer el Ejercicio 3.' },
-      { nombre: 'Arquetipos sistémicos', prompt: 'Explícame los arquetipos sistémicos de Senge: Shifting the Burden, Limits to Growth y otros. Cómo reconocerlos en sistemas reales.' },
-      { nombre: 'Mapa de influencias', prompt: 'Explícame el Influence Map y el Interpretive Structural Modelling (ISM): cómo encontrar leverage points' },
+      { nombre: 'Dinámica de sistemas', prompt: 'Explícame dinámica de sistemas, su relación con procesos y resultados' },
+      { nombre: 'Puntos o nodos clave', prompt: 'Explícame los Causal Loop Diagrams (CLD): bucles de refuerzo y balance, cómo se construyen.' },
+      { nombre: 'El Modelo DIKW', prompt: 'Explícame el modelo DIKW.' },
     ]
   },
   {
     num: 5, nombre: 'Visión',
     prompt: 'Dame una visión general del estadio [4] Envisioning — Visionar futuros deseados',
     lecciones: [
-      { nombre: 'Los tres horizontes', prompt: 'Explícame el marco Three Horizons de Bill Sharpe: H1, H2 y H3, cómo coexisten y cómo se usa en diseño sistémico' },
-      { nombre: 'Propuesta de valor sistémica', prompt: 'Explícame la herramienta System Value Proposition: cómo definir valor sistémico en múltiples niveles' },
-      { nombre: 'Mapa de síntesis', prompt: 'Explícame qué es un Synthesis Map (Gigamap) y cómo se construye para integrar todos los hallazgos del sistema' },
+      { nombre: 'Modelar Valor', prompt: 'Explícame cómo hacer modelos basados en valores' },
+      { nombre: 'Escaneo de horizontes', prompt: 'el marco Three Horizons de Bill Sharpe: H1, H2 y H3, cómo coexisten y cómo se usa en diseño sistémico' },
       { nombre: 'Trabajo con paradojas', prompt: 'Explícame qué es Paradoxing en diseño sistémico y cómo trabajar con tensiones y paradojas para generar innovación' },
     ]
   },
@@ -72,7 +70,6 @@ const MAPA_CURSO = [
     lecciones: [
       { nombre: 'Mapa de síntesis avanzado', prompt: 'Explícame cómo se usa el Synthesis Mapping en el estadio de exploración y cómo conecta con las intervenciones' },
       { nombre: 'Intervenciones', prompt: 'Explícame los tipos de intervenciones en diseño sistémico y cómo se identifican los puntos de palanca (leverage points)' },
-      { nombre: 'Estrategia de intervención', prompt: 'Explícame la herramienta Intervention Strategy y cómo definir una estrategia de intervención. Propón hacer el Ejercicio 4.' },
       { nombre: 'Límites del sistema', prompt: 'Explícame cómo se definen y trabajan los límites de un sistema en diseño sistémico' },
     ]
   },
@@ -81,17 +78,17 @@ const MAPA_CURSO = [
     prompt: 'Dame una visión general del estadio [6] Planning — Planificar el cambio sistémico',
     lecciones: [
       { nombre: 'Teoría del cambio', prompt: 'Explícame la Theory of Change (TOSCA) en diseño sistémico: niveles, supuestos y cómo se construye' },
-      { nombre: 'Eneagrama del proceso', prompt: 'Explícame el Process Enneagram y cómo se usa para organizaciones que se auto-organizan' },
-      { nombre: 'Mapa de resultados y hoja de ruta', prompt: 'Explícame el Outcome Map y el Roadmapping en diseño sistémico. Propón hacer el Ejercicio 5.' },
+      { nombre: 'Requerir variedad', prompt: 'Explícame cómo se auto-regulan y organizan los sistemas' },
+      { nombre: 'Innovación sistémica', prompt: 'Explícame cómo se fomenta la innovación sistémica y qué significa hacer una transición exitosa según el curso' },
     ]
   },
   {
     num: 8, nombre: 'Transición',
     prompt: 'Dame una visión general del estadio [7] Fostering — Implementar la transición sistémica',
     lecciones: [
-      { nombre: 'Modelo de colaboración', prompt: 'Explícame el Collaboration Model: cómo diseñar la colaboración entre actores para implementar el cambio sistémico' },
-      { nombre: 'Panarchía', prompt: 'Explícame el concepto de Panarchy de Holling: ciclos adaptativos y resiliencia en sistemas socio-ecológicos' },
-      { nombre: 'Innovación sistémica', prompt: 'Explícame cómo se fomenta la innovación sistémica y qué significa hacer una transición exitosa según el curso' },
+      { nombre: 'Teoría de la transición', prompt: 'Explícame la teoría de la transición en diseño sistémico: niveles, supuestos y cómo se construye' },
+      { nombre: 'Ciclos adaptativos de resiliencia', prompt: 'Explícame cómo diseñar la colaboración entre actores para implementar el cambio sistémico' },
+      { nombre: 'Gobernanza sistémica', prompt: 'Explícame cómo funciona la ejecución de intervenciones en sistemas socio-ecológicos' },
     ]
   },
 ]

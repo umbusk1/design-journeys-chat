@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 
 const MAPA_CURSO = [
   { num: 1, nombre: 'Introducción', lecciones: ['Para de solucionar problemas', 'Wicked Problems', 'Diseño sistémico'] },
-  { num: 2, nombre: 'Encuadre', lecciones: ['Enmarcar el sistema', 'Mapa de actores', 'CLA — El iceberg'] },
-  { num: 3, nombre: 'Escucha', lecciones: ['Hacer investigación', 'Partes interesadas y entrevistas', 'Mapa de actantes'] },
-  { num: 4, nombre: 'Comprensión', lecciones: ['Visualización de sistemas', 'Diagrama de bucles causales', 'Arquetipos sistémicos', 'Mapa de influencias'] },
-  { num: 5, nombre: 'Visión', lecciones: ['Los tres horizontes', 'Propuesta de valor sistémica', 'Mapa de síntesis', 'Trabajo con paradojas'] },
-  { num: 6, nombre: 'Posibilidades', lecciones: ['Mapa de síntesis avanzado', 'Intervenciones', 'Estrategia de intervención', 'Límites del sistema'] },
-  { num: 7, nombre: 'Planificación', lecciones: ['Teoría del cambio', 'Eneagrama del proceso', 'Mapa de resultados y hoja de ruta'] },
-  { num: 8, nombre: 'Transición', lecciones: ['Modelo de colaboración', 'Panarchía', 'Innovación sistémica'] },
+  { num: 2, nombre: 'Encuadre', lecciones: ['El Antropoceno', 'VUCA y BANI', 'Entendiendo el Iceberg'] },
+  { num: 3, nombre: 'Escucha', lecciones: ['Hacer investigación', 'Análisis Causal Sistémico', 'Visualizar Sistemas'] },
+  { num: 4, nombre: 'Comprensión', lecciones: ['Dinámica de sistemas', 'Puntos o nodos clave', 'El Modelo DIKW'] },
+  { num: 5, nombre: 'Visión', lecciones: ['Modelar Valor', 'Escaneo de horizontes', 'Trabajo con paradojas'] },
+  { num: 6, nombre: 'Posibilidades', lecciones: ['Mapa de síntesis avanzado', 'Intervenciones', 'Límites del sistema'] },
+  { num: 7, nombre: 'Planificación', lecciones: ['Teoría del cambio', 'Requerir variedad', 'Innovación sistémica'] },
+  { num: 8, nombre: 'Transición', lecciones: ['Teoría de la transición', 'Ciclos adaptativos de resiliencia', 'Gobernanza sistémica'] },
 ]
 
 function leccionId(capNum: number, lecIdx: number) {
