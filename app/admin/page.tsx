@@ -173,7 +173,7 @@ export default function AdminPage() {
                     value={form.titulo}
                     onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
                     placeholder="Título del recurso"
-                    className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-slate-700 border border-white/15 rounded-xl px-4 py-2.5 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500/50"
                   />
                   {/* URL */}
                   <input
@@ -184,7 +184,7 @@ export default function AdminPage() {
                       form.tipo === 'pdf' ? 'URL del PDF' :
                       'URL de YouTube'
                     }
-                    className="w-full bg-white/8 border border-white/15 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500/50"
+                    className="w-full bg-slate-700 border border-white/15 rounded-xl px-4 py-2.5 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500/50"
                   />
                   <button onClick={guardar} disabled={guardando || !form.titulo || !form.url}
                     className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl py-2.5 text-sm font-medium transition">
