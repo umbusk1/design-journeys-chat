@@ -7,6 +7,91 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
+// Mapa de palabras clave por lección — detecta qué lección es relevante
+const PALABRAS_CLAVE: Record<string, string[]> = {
+  'cap1_lec0': ['solucionar problemas', 'stop solving', 'introducción', 'curso'],
+  'cap1_lec1': ['wicked', 'perverso', 'problema perverso', 'rittel', 'buchanan'],
+  'cap1_lec2': ['diseño sistémico', 'systemic design', 'origen', 'principios'],
+  'cap2_lec0': ['enmarcar', 'framing', 'encuadre', 'el antropoceno', 'antropoceno'],
+  'cap2_lec1': ['vuca', 'bani', 'contexto', 'incertidumbre'],
+  'cap2_lec2': ['iceberg', 'cla', 'causal layered', 'análisis causal', 'capas'],
+  'cap3_lec0': ['investigación', 'research', 'entrevista', 'contextual'],
+  'cap3_lec1': ['análisis causal sistémico', 'stakeholder', 'partes interesadas'],
+  'cap3_lec2': ['visualizar', 'visualización', 'síntesis visual'],
+  'cap4_lec0': ['dinámica de sistemas', 'system dynamics', 'stock', 'flow'],
+  'cap4_lec1': ['puntos clave', 'nodos', 'leverage', 'palanca', 'influence map', 'mapa de influencias', 'ism'],
+  'cap4_lec2': ['dikw', 'datos', 'información', 'conocimiento', 'sabiduría'],
+  'cap5_lec0': ['modelar valor', 'valor', 'value proposition', 'propuesta de valor'],
+  'cap5_lec1': ['tres horizontes', 'three horizons', 'h1', 'h2', 'h3', 'bill sharpe', 'horizontes'],
+  'cap5_lec2': ['paradoja', 'paradoxing', 'tensión', 'trabajo con paradojas'],
+  'cap6_lec0': ['mapa de síntesis', 'synthesis map', 'gigamap', 'síntesis avanzado'],
+  'cap6_lec1': ['intervención', 'intervenciones', 'leverage points', 'puntos de palanca'],
+  'cap6_lec2': ['límites', 'boundary', 'límites del sistema'],
+  'cap7_lec0': ['teoría del cambio', 'theory of change', 'tosca', 'toc'],
+  'cap7_lec1': ['requisite variety', 'requerir variedad', 'variedad requerida', 'ashby'],
+  'cap7_lec2': ['innovación sistémica', 'systemic innovation'],
+  'cap8_lec0': ['teoría de la transición', 'transition theory', 'transición'],
+  'cap8_lec1': ['ciclos adaptativos', 'panarchy', 'panarchía', 'resiliencia', 'holling'],
+  'cap8_lec2': ['gobernanza', 'governance', 'ecosistema', 'colaboración', 'collaboration model'],
+}
+
+async function buscarRecursosRelevantes(mensaje: string): Promise<string> {
+  try {
+    // Obtener todas las lecciones que tienen recursos
+    const conRecursos = await sql`
+      SELECT DISTINCT leccion_id FROM recursos
+    `
+    if (conRecursos.length === 0) return ''
+
+    const leccionesConRecursos = new Set(
+      (conRecursos as Array<{ leccion_id: string }>).map(r => r.leccion_id)
+    )
+
+    // Detectar qué lecciones son relevantes para el mensaje
+    const mensajeLower = mensaje.toLowerCase()
+    const leccionesRelevantes: string[] = []
+
+    for (const [leccionId, palabras] of Object.entries(PALABRAS_CLAVE)) {
+      if (!leccionesConRecursos.has(leccionId)) continue
+      const esRelevante = palabras.some(p => mensajeLower.includes(p.toLowerCase()))
+      if (esRelevante) leccionesRelevantes.push(leccionId)
+    }
+
+    if (leccionesRelevantes.length === 0) return ''
+
+    // Obtener los recursos de las lecciones relevantes
+    const recursos = await sql`
+      SELECT leccion_id, tipo, titulo, url
+      FROM recursos
+      WHERE leccion_id = ANY(${leccionesRelevantes})
+      ORDER BY leccion_id, tipo, orden
+    `
+
+    if (recursos.length === 0) return ''
+
+    // Formatear el contexto de recursos para Claude
+    const tipoLabels: Record<string, string> = {
+      grafico: 'Gráfico/Imagen',
+      pdf: 'Documento PDF',
+      youtube: 'Video YouTube',
+    }
+
+    let contexto = '\n\n---\nRECURSOS DE REFERENCIA DISPONIBLES PARA ESTA CONSULTA:\n'
+    contexto += 'Los siguientes materiales están disponibles para los estudiantes. Menciónalos naturalmente en tu respuesta cuando sean relevantes, incluyendo el link:\n\n'
+
+    for (const r of recursos as Array<{ leccion_id: string; tipo: string; titulo: string; url: string }>) {
+      const tipo = tipoLabels[r.tipo] || r.tipo
+      contexto += `- [${tipo}] ${r.titulo}: ${r.url}\n`
+    }
+
+    contexto += '---\n'
+    return contexto
+  } catch (error) {
+    console.error('Error al buscar recursos:', error)
+    return ''
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { mensaje, conversacionId, usuarioId, esPrimerMensaje } = await req.json()
@@ -24,7 +109,7 @@ export async function POST(req: NextRequest) {
       VALUES (${conversacionId}, 'user', ${mensaje})
     `
 
-    // Si es el primer mensaje, actualizar el título de la conversación
+    // Actualizar título si es el primer mensaje
     if (esPrimerMensaje) {
       const titulo = mensaje.length > 60 ? mensaje.substring(0, 60) + '…' : mensaje
       await sql`
@@ -32,18 +117,20 @@ export async function POST(req: NextRequest) {
       `
     }
 
-    // Obtener historial de la conversación
+    // Obtener historial
     const historial = await sql`
       SELECT rol, contenido FROM mensajes
       WHERE conversacion_id = ${conversacionId}
       ORDER BY created_at ASC
     `
 
-    // Llamar a Claude con más tokens y guía de formato
-    const respuesta = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
-      system: SYSTEM_PROMPT + `\n\nINSTRUCCIÓN DE FORMATO: Cuando necesites mostrar una tabla comparativa, usa HTML directamente con este formato exacto:
+    // Buscar recursos relevantes para este mensaje
+    const contextоRecursos = await buscarRecursosRelevantes(mensaje)
+
+    // Construir system prompt con recursos si los hay
+    const systemPromptFinal = SYSTEM_PROMPT + contextоRecursos + `
+
+INSTRUCCIÓN DE FORMATO: Cuando necesites mostrar una tabla comparativa, usa HTML directamente con este formato exacto:
 <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:1em 0">
 <thead><tr style="background:rgba(16,185,129,0.15)">
 <th style="padding:8px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);color:#6ee7b7">Columna A</th>
@@ -52,7 +139,13 @@ export async function POST(req: NextRequest) {
 <tbody>
 <tr><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);color:#cbd5e1">Valor 1A</td><td style="padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.05);color:#cbd5e1">Valor 1B</td></tr>
 </tbody></table>
-Adapta los colores y contenido según el tema. NUNCA uses sintaxis Markdown de tabla (pipes |). Siempre HTML para tablas.`,
+NUNCA uses sintaxis Markdown de tabla (pipes |). Siempre HTML para tablas.`
+
+    // Llamar a Claude
+    const respuesta = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      system: systemPromptFinal,
       messages: (historial as Array<{ rol: string; contenido: string }>).map(m => ({
         role: m.rol as 'user' | 'assistant',
         content: m.contenido,
@@ -62,12 +155,10 @@ Adapta los colores y contenido según el tema. NUNCA uses sintaxis Markdown de t
     const textoRespuesta =
       respuesta.content[0].type === 'text' ? respuesta.content[0].text : ''
 
-    // Tokens usados en esta llamada
     const tokensInput = respuesta.usage.input_tokens
     const tokensOutput = respuesta.usage.output_tokens
-    const tokensTotal = tokensInput + tokensOutput
 
-    // Guardar respuesta del asistente con tokens
+    // Guardar respuesta
     await sql`
       INSERT INTO mensajes (conversacion_id, rol, contenido, tokens_input, tokens_output)
       VALUES (${conversacionId}, 'assistant', ${textoRespuesta}, ${tokensInput}, ${tokensOutput})
@@ -75,7 +166,7 @@ Adapta los colores y contenido según el tema. NUNCA uses sintaxis Markdown de t
 
     return NextResponse.json({
       respuesta: textoRespuesta,
-      tokens: { input: tokensInput, output: tokensOutput, total: tokensTotal }
+      tokens: { input: tokensInput, output: tokensOutput, total: tokensInput + tokensOutput }
     })
   } catch (error) {
     console.error('Error en chat:', error)
