@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 const MAPA_CURSO = [
-  { num: 1, nombre: 'Introducción', lecciones: ['Introducción al curso', 'Wicked Problems', 'Diseño sistémico'] },
+  { num: 1, nombre: 'Introducción', lecciones: ['Para de solucionar problemas', 'Wicked Problems', 'Diseño sistémico'] },
   { num: 2, nombre: 'Framing', lecciones: ['Enmarcar el sistema', 'Actors Map', 'CLA — El iceberg'] },
   { num: 3, nombre: 'Listening', lecciones: ['Hacer investigación', 'Stakeholders y entrevistas', 'Actants Map'] },
   { num: 4, nombre: 'Understanding', lecciones: ['Visualización de sistemas', 'Causal Loop Diagram', 'System Archetypes', 'Influence Map'] },

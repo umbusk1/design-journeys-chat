@@ -23,7 +23,7 @@ const MAPA_CURSO = [
     num: 1, nombre: 'Introducción',
     prompt: 'Dame una introducción general al curso de Systemic Design y sus conceptos fundamentales',
     lecciones: [
-      { nombre: 'Introducción al curso', prompt: 'Explícame qué es el curso de Systemic Design for Tackling Complexity y qué vamos a aprender' },
+      { nombre: 'Para de solucionar problemas', prompt: 'Explícame qué es el curso de Systemic Design for Tackling Complexity y qué vamos a aprender' },
       { nombre: 'Wicked Problems', prompt: 'Explícame qué son los problemas perversos (Wicked Problems) y por qué son relevantes para el diseño sistémico' },
       { nombre: 'Diseño sistémico', prompt: 'Explícame qué es el diseño sistémico, su origen y en qué se diferencia del diseño tradicional' },
     ]
