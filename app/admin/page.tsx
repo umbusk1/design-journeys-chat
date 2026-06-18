@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 
 const MAPA_CURSO = [
   { num: 1, nombre: 'Introducción', lecciones: ['Para de solucionar problemas', 'Wicked Problems', 'Diseño sistémico'] },
-  { num: 2, nombre: 'Framing', lecciones: ['Enmarcar el sistema', 'Actors Map', 'CLA — El iceberg'] },
-  { num: 3, nombre: 'Listening', lecciones: ['Hacer investigación', 'Stakeholders y entrevistas', 'Actants Map'] },
-  { num: 4, nombre: 'Understanding', lecciones: ['Visualización de sistemas', 'Causal Loop Diagram', 'System Archetypes', 'Influence Map'] },
-  { num: 5, nombre: 'Envisioning', lecciones: ['Three Horizons', 'System Value Proposition', 'Synthesis Map', 'Paradoxing'] },
-  { num: 6, nombre: 'Possibility Space', lecciones: ['Synthesis Mapping', 'Intervenciones', 'Intervention Strategy', 'Límites del sistema'] },
-  { num: 7, nombre: 'Planning', lecciones: ['Theory of Change', 'Process Enneagram', 'Outcome Map + Roadmap'] },
-  { num: 8, nombre: 'Transition', lecciones: ['Collaboration Model', 'Panarchy', 'Innovación sistémica'] },
+  { num: 2, nombre: 'Encuadre', lecciones: ['Enmarcar el sistema', 'Mapa de actores', 'CLA — El iceberg'] },
+  { num: 3, nombre: 'Escucha', lecciones: ['Hacer investigación', 'Partes interesadas y entrevistas', 'Mapa de actantes'] },
+  { num: 4, nombre: 'Comprensión', lecciones: ['Visualización de sistemas', 'Diagrama de bucles causales', 'Arquetipos sistémicos', 'Mapa de influencias'] },
+  { num: 5, nombre: 'Visión', lecciones: ['Los tres horizontes', 'Propuesta de valor sistémica', 'Mapa de síntesis', 'Trabajo con paradojas'] },
+  { num: 6, nombre: 'Posibilidades', lecciones: ['Mapa de síntesis avanzado', 'Intervenciones', 'Estrategia de intervención', 'Límites del sistema'] },
+  { num: 7, nombre: 'Planificación', lecciones: ['Teoría del cambio', 'Eneagrama del proceso', 'Mapa de resultados y hoja de ruta'] },
+  { num: 8, nombre: 'Transición', lecciones: ['Modelo de colaboración', 'Panarchía', 'Innovación sistémica'] },
 ]
 
 function leccionId(capNum: number, lecIdx: number) {
