@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { sql } from '@/lib/db'
-import { SYSTEM_PROMPT } from '@/lib/system-prompt'
+import { PROMPT_BASE, CONTENIDO_LECCIONES, RESUMEN_GENERAL } from '@/lib/system-prompt'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
-// Mapa de palabras clave por lección — detecta qué lección es relevante
+// Mapa de palabras clave por lección — detecta qué lección es relevante.
+// Se usa TANTO para elegir qué recursos mostrar COMO para elegir qué
+// bloque(s) de contenido de lección incluir en el system prompt.
 const PALABRAS_CLAVE: Record<string, string[]> = {
   'cap1_lec0': ['solucionar problemas', 'stop solving', 'introducción', 'curso'],
   'cap1_lec1': ['wicked', 'perverso', 'problema perverso', 'rittel', 'buchanan'],
@@ -35,9 +37,34 @@ const PALABRAS_CLAVE: Record<string, string[]> = {
   'cap8_lec2': ['gobernanza', 'governance', 'ecosistema', 'colaboración', 'collaboration model'],
 }
 
-async function buscarRecursosRelevantes(mensaje: string): Promise<string> {
+// Detecta qué lecciones son relevantes para un mensaje dado.
+function detectarLeccionesRelevantes(mensaje: string): string[] {
+  const mensajeLower = mensaje.toLowerCase()
+  const relevantes: string[] = []
+  for (const [leccionId, palabras] of Object.entries(PALABRAS_CLAVE)) {
+    const esRelevante = palabras.some(p => mensajeLower.includes(p.toLowerCase()))
+    if (esRelevante) relevantes.push(leccionId)
+  }
+  return relevantes
+}
+
+// Arma el system prompt dinámico: base + bloques de lección relevantes
+// (o resumen general si no se detectó ninguna lección específica).
+function construirSystemPrompt(leccionesRelevantes: string[]): string {
+  if (leccionesRelevantes.length === 0) {
+    return `${PROMPT_BASE}\n\n---\n${RESUMEN_GENERAL}`
+  }
+  const bloques = leccionesRelevantes
+    .map(lid => CONTENIDO_LECCIONES[lid])
+    .filter(Boolean)
+    .join('\n\n')
+  return `${PROMPT_BASE}\n\n---\n## CONTENIDO RELEVANTE PARA ESTA CONSULTA\n\n${bloques}`
+}
+
+async function buscarRecursosRelevantes(leccionesRelevantes: string[]): Promise<string> {
   try {
-    // Obtener todas las lecciones que tienen recursos
+    if (leccionesRelevantes.length === 0) return ''
+
     const conRecursos = await sql`
       SELECT DISTINCT leccion_id FROM recursos
     `
@@ -47,29 +74,18 @@ async function buscarRecursosRelevantes(mensaje: string): Promise<string> {
       (conRecursos as Array<{ leccion_id: string }>).map(r => r.leccion_id)
     )
 
-    // Detectar qué lecciones son relevantes para el mensaje
-    const mensajeLower = mensaje.toLowerCase()
-    const leccionesRelevantes: string[] = []
+    const leccionesConDatos = leccionesRelevantes.filter(l => leccionesConRecursos.has(l))
+    if (leccionesConDatos.length === 0) return ''
 
-    for (const [leccionId, palabras] of Object.entries(PALABRAS_CLAVE)) {
-      if (!leccionesConRecursos.has(leccionId)) continue
-      const esRelevante = palabras.some(p => mensajeLower.includes(p.toLowerCase()))
-      if (esRelevante) leccionesRelevantes.push(leccionId)
-    }
-
-    if (leccionesRelevantes.length === 0) return ''
-
-    // Obtener los recursos de las lecciones relevantes
     const recursos = await sql`
       SELECT leccion_id, tipo, titulo, url
       FROM recursos
-      WHERE leccion_id = ANY(${leccionesRelevantes})
+      WHERE leccion_id = ANY(${leccionesConDatos})
       ORDER BY leccion_id, tipo, orden
     `
 
     if (recursos.length === 0) return ''
 
-    // Formatear el contexto de recursos para Claude
     const tipoLabels: Record<string, string> = {
       grafico: 'Gráfico/Imagen',
       pdf: 'Documento PDF',
@@ -124,11 +140,14 @@ export async function POST(req: NextRequest) {
       ORDER BY created_at ASC
     `
 
-    // Buscar recursos relevantes para este mensaje
-    const contextоRecursos = await buscarRecursosRelevantes(mensaje)
+    // Detectar lecciones relevantes UNA SOLA VEZ, reutilizar para
+    // construir tanto el system prompt como los recursos.
+    const leccionesRelevantes = detectarLeccionesRelevantes(mensaje)
+    const systemPromptDinamico = construirSystemPrompt(leccionesRelevantes)
+    const contextoRecursos = await buscarRecursosRelevantes(leccionesRelevantes)
 
-    // Construir system prompt con recursos si los hay
-    const systemPromptFinal = SYSTEM_PROMPT + contextоRecursos + `
+    // System prompt final
+    const systemPromptFinal = systemPromptDinamico + contextoRecursos + `
 
 INSTRUCCIÓN DE FORMATO: Cuando necesites mostrar una tabla comparativa, usa HTML directamente con este formato exacto:
 <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin:1em 0">
