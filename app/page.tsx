@@ -417,7 +417,16 @@ export default function ChatPage() {
                         prose-code:text-emerald-300 prose-code:bg-white/10 prose-code:px-1 prose-code:rounded
                         prose-blockquote:border-l-emerald-500 prose-blockquote:text-slate-400
                         prose-hr:border-white/10">
-                        <ReactMarkdown rehypePlugins={[rehypeRaw]}>{msg.contenido}</ReactMarkdown>
+                        <ReactMarkdown
+                          rehypePlugins={[rehypeRaw]}
+                          components={{
+                            a: ({ ...props }) => (
+                              <a {...props} target="_blank" rel="noopener noreferrer" />
+                            ),
+                          }}
+                        >
+                          {msg.contenido}
+                        </ReactMarkdown>
                       </div>
                     ) : msg.contenido}
                   </div>
@@ -448,7 +457,7 @@ export default function ChatPage() {
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarTexto(input)}
                   placeholder="Pregunta sobre Systemic Design..."
                   disabled={cargando}
-                  className="flex-1 bg-white/8 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
+                  className="flex-1 bg-slate-700 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
                 <button onClick={() => enviarTexto(input)} disabled={cargando || !input.trim()}
                   className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
                   Enviar
