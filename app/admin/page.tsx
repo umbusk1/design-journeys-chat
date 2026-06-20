@@ -27,9 +27,10 @@ interface Recurso {
 }
 
 const TIPOS = [
-  { value: 'grafico', label: 'Gráfico', icon: '🖼️' },
-  { value: 'pdf', label: 'PDF', icon: '📄' },
-  { value: 'youtube', label: 'YouTube', icon: '▶️' },
+{ value: 'lamina', label: 'Lámina Grupo 1', icon: '📋' },
+{ value: 'grafico', label: 'Gráfico', icon: '🖼️' },
+{ value: 'pdf', label: 'PDF', icon: '📄' },
+{ value: 'youtube', label: 'YouTube', icon: '▶️' },
 ]
 
 export default function AdminPage() {

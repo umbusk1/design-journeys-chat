@@ -221,6 +221,7 @@ export default function ChatPage() {
   }
 
   const tiposInfo: Record<string, { label: string; icon: string; color: string }> = {
+    lamina: { label: 'Lámina Grupo 1', icon: '📋', color: 'text-amber-400' },
     grafico: { label: 'Gráficos', icon: '🖼️', color: 'text-violet-400' },
     pdf: { label: 'PDFs', icon: '📄', color: 'text-red-400' },
     youtube: { label: 'YouTube', icon: '▶️', color: 'text-red-500' },
@@ -503,7 +504,7 @@ export default function ChatPage() {
               {cargandoRecursos ? (
                 <p className="text-slate-400 text-sm text-center py-4">Cargando recursos...</p>
               ) : (
-                ['grafico', 'pdf', 'youtube'].map(tipo => {
+                ['lamina', 'grafico', 'pdf', 'youtube'].map(tipo => {
                   const items = recursosModal.filter(r => r.tipo === tipo)
                   if (items.length === 0) return null
                   const info = tiposInfo[tipo]
