@@ -112,6 +112,7 @@ export default function ChatPage() {
   const [recursosModal, setRecursosModal] = useState<Recurso[]>([])
   const [cargandoRecursos, setCargandoRecursos] = useState(false)
   const [modalAyuda, setModalAyuda] = useState(false)
+  const bottomRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -220,7 +221,14 @@ export default function ChatPage() {
   function cerrarSesion() { localStorage.removeItem('usuario'); router.push('/login') }
 
   function formatFecha(f: string) {
-    return new Date(f).toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    const fecha = new Date(f)
+    if (Number.isNaN(fecha.getTime())) return ''
+    return fecha.toLocaleDateString('es', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   const tiposInfo: Record<string, { label: string; icon: string; color: string }> = {
@@ -339,7 +347,7 @@ export default function ChatPage() {
                                           </div>
                                           <div className="min-w-0">
                                             <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
-                                            <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
+                                            <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.created_at)} · {conv.total_mensajes} msg</p>
                                           </div>
                                         </div>
                                         {esMia && (
