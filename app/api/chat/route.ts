@@ -133,17 +133,6 @@ export async function POST(req: NextRequest) {
       VALUES (${conversacionId}, 'user', ${mensaje})
     `
 
-    // Actualizar título y cap_id si es el primer mensaje
-    if (esPrimerMensaje) {
-      const titulo = mensaje.length > 60 ? mensaje.substring(0, 60) + '…' : mensaje
-      const capId = extraerCapId(leccionesRelevantes)
-      await sql`
-        UPDATE conversaciones
-        SET titulo = ${titulo}, cap_id = ${capId}
-        WHERE id = ${conversacionId}
-      `
-    }
-
     // Obtener historial
     const historial = await sql`
       SELECT rol, contenido FROM mensajes
@@ -154,6 +143,17 @@ export async function POST(req: NextRequest) {
     // Detectar lecciones relevantes UNA SOLA VEZ, reutilizar para
     // construir tanto el system prompt como los recursos.
     const leccionesRelevantes = detectarLeccionesRelevantes(mensaje)
+
+    // Actualizar título y cap_id si es el primer mensaje
+    if (esPrimerMensaje) {
+      const titulo = mensaje.length > 60 ? mensaje.substring(0, 60) + '…' : mensaje
+      const capId = extraerCapId(leccionesRelevantes)
+      await sql`
+        UPDATE conversaciones
+        SET titulo = ${titulo}, cap_id = ${capId}
+        WHERE id = ${conversacionId}
+      `
+    }
     const systemPromptDinamico = construirSystemPrompt(leccionesRelevantes)
     const contextoRecursos = await buscarRecursosRelevantes(leccionesRelevantes)
 
