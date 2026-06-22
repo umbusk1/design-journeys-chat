@@ -48,6 +48,14 @@ function detectarLeccionesRelevantes(mensaje: string): string[] {
   return relevantes
 }
 
+// Extrae el número de capítulo de una lista de leccion_id detectados.
+// Devuelve el cap_id del primero que encuentre (ej. 'cap3'), o null.
+function extraerCapId(leccionesRelevantes: string[]): string | null {
+  if (leccionesRelevantes.length === 0) return null
+  const match = leccionesRelevantes[0].match(/^(cap\d+)_/)
+  return match ? match[1] : null
+}
+
 // Arma el system prompt dinámico: base + bloques de lección relevantes
 // (o resumen general si no se detectó ninguna lección específica).
 function construirSystemPrompt(leccionesRelevantes: string[]): string {
@@ -125,11 +133,14 @@ export async function POST(req: NextRequest) {
       VALUES (${conversacionId}, 'user', ${mensaje})
     `
 
-    // Actualizar título si es el primer mensaje
+    // Actualizar título y cap_id si es el primer mensaje
     if (esPrimerMensaje) {
       const titulo = mensaje.length > 60 ? mensaje.substring(0, 60) + '…' : mensaje
+      const capId = extraerCapId(leccionesRelevantes)
       await sql`
-        UPDATE conversaciones SET titulo = ${titulo} WHERE id = ${conversacionId}
+        UPDATE conversaciones
+        SET titulo = ${titulo}, cap_id = ${capId}
+        WHERE id = ${conversacionId}
       `
     }
 

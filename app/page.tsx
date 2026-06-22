@@ -10,7 +10,7 @@ interface Usuario { id: number; nombre: string; email: string }
 interface Conversacion {
   id: number; titulo: string; created_at: string
   total_mensajes: number; ultimo_mensaje: string
-  usuario_id: number; autor_nombre: string
+  usuario_id: number; autor_nombre: string; cap_id: string | null
 }
 interface Stats {
   usuarios: Array<{ id: number; nombre: string; tokensTotal: number; costoUSD: number; totalRespuestas: number }>
@@ -103,12 +103,15 @@ export default function ChatPage() {
   const [conversacionId, setConversacionId] = useState<number | null>(null)
   const [historial, setHistorial] = useState<Conversacion[]>([])
   const [sidebarAbierto, setSidebarAbierto] = useState(false)
+  const [acordeonesAbiertos, setAcordeonesAbiertos] = useState<Record<string, boolean>>({})
+  const toggleAcordeon = (key: string) =>
+    setAcordeonesAbiertos(prev => ({ ...prev, [key]: !prev[key] }))
   const [stats, setStats] = useState<Stats | null>(null)
   const [conteoRecursos, setConteoRecursos] = useState<Record<string, number>>({})
   const [modalInfo, setModalInfo] = useState<{ leccionId: string; nombre: string } | null>(null)
   const [recursosModal, setRecursosModal] = useState<Recurso[]>([])
   const [cargandoRecursos, setCargandoRecursos] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [modalAyuda, setModalAyuda] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -269,7 +272,7 @@ export default function ChatPage() {
             <div className="fixed inset-0 bg-black/50 z-10 lg:hidden" onClick={() => setSidebarAbierto(false)} />
             <aside className="absolute lg:relative w-72 h-full border-r border-white/10 bg-slate-900 lg:bg-slate-900/60 flex flex-col overflow-y-auto flex-shrink-0 z-20">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Conversaciones anteriores</p>
+                <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Conversaciones</p>
                 <button onClick={() => setSidebarAbierto(false)} className="text-slate-500 hover:text-white transition lg:hidden">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -278,33 +281,84 @@ export default function ChatPage() {
               </div>
               {historial.length === 0
                 ? <p className="text-slate-500 text-xs px-4 py-6 text-center">No hay conversaciones anteriores</p>
-                : <div className="flex flex-col gap-1 p-2">
-                    {historial.map((conv: Conversacion) => {
-                      const esMia = conv.usuario_id === usuario?.id
-                      const iniciales = conv.autor_nombre?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
-                      return (
-                        <div key={conv.id} onClick={() => abrirConversacion(conv)}
-                          className={`group flex items-start justify-between px-3 py-2.5 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
-                          <div className="flex items-start gap-2 flex-1 min-w-0 mr-2">
-                            <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${esMia ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
-                              {iniciales}
+                : <div className="flex flex-col p-2">
+                    {(() => {
+                      // Agrupar conversaciones por cap_id
+                      const grupos: Record<string, Conversacion[]> = {}
+                      for (const conv of historial) {
+                        const key = conv.cap_id || 'sin_categoria'
+                        if (!grupos[key]) grupos[key] = []
+                        grupos[key].push(conv)
+                      }
+                      // Orden: cap1..cap8 primero, luego sin_categoria
+                      const capNombres: Record<string, string> = {
+                        cap1: '01 Introducción', cap2: '02 Encuadre',
+                        cap3: '03 Escucha', cap4: '04 Comprensión',
+                        cap5: '05 Visión', cap6: '06 Posibilidades',
+                        cap7: '07 Planificación', cap8: '08 Transición',
+                        sin_categoria: 'Fuera del curso',
+                      }
+                      const orden = ['cap1','cap2','cap3','cap4','cap5','cap6','cap7','cap8','sin_categoria']
+                      return orden
+                        .filter(k => grupos[k]?.length > 0)
+                        .map(key => {
+                          const convs = grupos[key]
+                          const abierto = acordeonesAbiertos[key] ?? false
+                          return (
+                            <div key={key} className="mb-1">
+                              {/* Cabecera del acordeón */}
+                              <button
+                                onClick={() => toggleAcordeon(key)}
+                                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition group">
+                                <span className="text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider">
+                                  {capNombres[key] || key}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="bg-emerald-500/20 text-emerald-400 text-xs rounded-full px-1.5 py-0.5 font-mono">
+                                    {convs.length}
+                                  </span>
+                                  <svg
+                                    className={`text-slate-500 transition-transform duration-200 ${abierto ? 'rotate-180' : ''}`}
+                                    width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                  </svg>
+                                </div>
+                              </button>
+                              {/* Conversaciones del grupo */}
+                              {abierto && (
+                                <div className="flex flex-col gap-0.5 mt-0.5 ml-1">
+                                  {convs.map((conv: Conversacion) => {
+                                    const esMia = conv.usuario_id === usuario?.id
+                                    const iniciales = conv.autor_nombre?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                                    return (
+                                      <div key={conv.id} onClick={() => abrirConversacion(conv)}
+                                        className={`group flex items-start justify-between px-3 py-2 rounded-lg cursor-pointer transition hover:bg-white/10 ${conversacionId === conv.id ? 'bg-white/10 border border-emerald-500/30' : ''}`}>
+                                        <div className="flex items-start gap-2 flex-1 min-w-0 mr-2">
+                                          <div className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${esMia ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>
+                                            {iniciales}
+                                          </div>
+                                          <div className="min-w-0">
+                                            <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
+                                            <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
+                                          </div>
+                                        </div>
+                                        {esMia && (
+                                          <button onClick={(e) => eliminarConversacion(e, conv.id)}
+                                            className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                                            </svg>
+                                          </button>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-slate-200 text-xs font-medium truncate">{conv.titulo}</p>
-                              <p className="text-slate-500 text-xs mt-0.5">{formatFecha(conv.ultimo_mensaje || conv.created_at)} · {conv.total_mensajes} msg</p>
-                            </div>
-                          </div>
-                          {esMia && (
-                            <button onClick={(e) => eliminarConversacion(e, conv.id)}
-                              className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition flex-shrink-0 mt-0.5">
-                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
+                          )
+                        })
+                    })()}
                   </div>
               }
             </aside>
@@ -343,6 +397,11 @@ export default function ChatPage() {
 
                 <div className="text-center mb-6">
                   <p className="text-slate-400 text-sm">Selecciona un capítulo o lección para comenzar</p>
+                  <button
+                    onClick={() => setModalAyuda(true)}
+                    className="mt-2 text-emerald-500 hover:text-emerald-400 text-xs underline underline-offset-2 transition">
+                    ¿Cómo usar esta herramienta?
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -478,6 +537,29 @@ export default function ChatPage() {
           </footer>
         </div>
       </div>
+
+      {/* Modal de ayuda */}
+      {modalAyuda && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setModalAyuda(false)}>
+          <div className="bg-slate-800 border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+              <h3 className="text-white font-semibold text-sm">¿Cómo usar esta herramienta?</h3>
+              <button onClick={() => setModalAyuda(false)} className="text-slate-400 hover:text-white transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div className="px-5 py-5">
+              <p className="text-slate-200 text-sm leading-relaxed">
+                Para obtener un resumen de los contenidos, puedes hacer clic en los títulos de los capítulos y de las respectivas lecciones. Para información complementaria, en cada lección puedes hacer clic en las <span className="text-emerald-400 font-semibold">ⓘ</span> encerradas en círculos. También puedes preguntar sobre diseño sistémico abajo en el chat. Al terminar de leer cada respuesta puedes continuar conversando con la IA, si crees que eso te ayudará a entender mejor cada tema del curso.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de recursos */}
       {modalInfo && (
