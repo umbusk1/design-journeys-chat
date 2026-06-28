@@ -251,11 +251,15 @@ export default function ChatPage() {
             </svg>
           </button>
           <span className="text-xl">🌿</span>
-          <div>
-            <h1 className="text-white font-semibold text-sm tracking-wide">Design Journeys</h1>
-            <p className="text-slate-400 text-xs hidden sm:block">Compañero de estudio · Systemic Design</p>
-          </div>
-        </div>
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-3 hover:opacity-80 transition">
+            <span className="text-xl">🌿</span>
+            <div className="text-left">
+              <h1 className="text-white font-semibold text-sm">Design Journeys — Admin</h1>
+              <p className="text-slate-400 text-xs">Gestión de recursos por lección</p>
+            </div>
+          </button>
         <div className="flex items-center gap-3">
           {usuario?.id === 1 && (
             <button onClick={() => router.push('/admin')}
