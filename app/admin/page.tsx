@@ -111,13 +111,15 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
       {/* Header */}
       <header className="border-b border-white/10 px-6 py-3 flex items-center justify-between bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-3">
+        <button
+          onClick={() => router.push('/')}
+          className="flex items-center gap-3 hover:opacity-80 transition">
           <span className="text-xl">🌿</span>
-          <div>
+          <div className="text-left">
             <h1 className="text-white font-semibold text-sm">Design Journeys — Admin</h1>
             <p className="text-slate-400 text-xs">Gestión de recursos por lección</p>
           </div>
-        </div>
+        </button>
         <button onClick={() => router.push('/')}
           className="text-slate-400 hover:text-white text-xs border border-white/10 rounded-lg px-3 py-1.5 transition">
           ← Volver al chat
