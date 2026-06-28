@@ -26,11 +26,16 @@ interface Recurso {
   url: string
 }
 
+interface Stats {
+  usuarios: Array<{ id: number; nombre: string; tokensTotal: number; costoUSD: number; totalRespuestas: number }>
+  totales: { tokensTotal: number; costoUSD: number }
+}
+
 const TIPOS = [
-{ value: 'lamina', label: 'Lámina Grupo 1', icon: '📋' },
-{ value: 'grafico', label: 'Gráfico', icon: '🖼️' },
-{ value: 'pdf', label: 'PDF', icon: '📄' },
-{ value: 'youtube', label: 'YouTube', icon: '▶️' },
+  { value: 'lamina', label: 'Lámina Grupo 1', icon: '📋' },
+  { value: 'grafico', label: 'Gráfico', icon: '🖼️' },
+  { value: 'pdf', label: 'PDF', icon: '📄' },
+  { value: 'youtube', label: 'YouTube', icon: '▶️' },
 ]
 
 export default function AdminPage() {
@@ -40,6 +45,7 @@ export default function AdminPage() {
   const [form, setForm] = useState({ tipo: 'grafico', titulo: '', url: '' })
   const [guardando, setGuardando] = useState(false)
   const [conteos, setConteos] = useState<Record<string, number>>({})
+  const [stats, setStats] = useState<Stats | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -49,7 +55,16 @@ export default function AdminPage() {
     if (parsed.id !== 1) { router.push('/'); return }
     setUsuario(parsed)
     cargarConteos()
+    cargarStats()
   }, [])
+
+  async function cargarStats() {
+    try {
+      const r = await fetch('/api/stats/tokens')
+      const d = await r.json()
+      setStats(d)
+    } catch (e) { console.error(e) }
+  }
 
   async function cargarConteos() {
     const r = await fetch('/api/recursos')
@@ -143,11 +158,46 @@ export default function AdminPage() {
           </div>
         </aside>
 
-        {/* Panel derecho — editor de recursos */}
+        {/* Panel derecho */}
         <main className="flex-1 overflow-y-auto p-6">
           {!leccionActiva ? (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-slate-500 text-sm">Selecciona una lección para gestionar sus recursos</p>
+            <div className="max-w-2xl mx-auto space-y-6 pt-4">
+
+              {/* Dashboard de tokens */}
+              {stats && (
+                <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
+                  <h2 className="text-white text-sm font-semibold mb-4">Uso y costos</h2>
+                  <div className="flex flex-wrap gap-6">
+                    <div>
+                      <p className="text-slate-500 text-xs leading-none mb-1">Total tokens</p>
+                      <p className="text-slate-300 text-sm font-mono font-semibold">{stats.totales.tokensTotal.toLocaleString()}</p>
+                    </div>
+                    <div className="w-px bg-white/10 hidden sm:block"/>
+                    <div>
+                      <p className="text-slate-500 text-xs leading-none mb-1">Costo total</p>
+                      <p className="text-emerald-400 text-sm font-mono font-semibold">${stats.totales.costoUSD.toFixed(4)}</p>
+                    </div>
+                    <div className="w-px bg-white/10 hidden sm:block"/>
+                    {stats.usuarios.map(u => (
+                      <div key={u.id}>
+                        <p className="text-slate-500 text-xs leading-none mb-1">{u.nombre.split(' ')[0]}</p>
+                        <p className="text-slate-400 text-sm font-mono">
+                          {u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Instrucción de uso */}
+              <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-4">
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  A la izquierda, puedes hacer clic en las lecciones para agregar o eliminar recursos complementarios de aprendizaje
+                  {' '}<span className="text-slate-300">(Gráficos, PDFs, YouTube, Láminas, etc.)</span>.
+                </p>
+              </div>
+
             </div>
           ) : (
             <div className="max-w-2xl mx-auto space-y-6">
@@ -183,6 +233,7 @@ export default function AdminPage() {
                     placeholder={
                       form.tipo === 'grafico' ? 'URL de Google Drive (vista previa)' :
                       form.tipo === 'pdf' ? 'URL del PDF' :
+                      form.tipo === 'lamina' ? 'URL de la lámina (Drive)' :
                       'URL de YouTube'
                     }
                     className="w-full bg-slate-700 border border-white/15 rounded-xl px-4 py-2.5 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500/50"
@@ -198,14 +249,14 @@ export default function AdminPage() {
               {recursos.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="text-slate-400 text-xs font-medium uppercase tracking-wider">Recursos cargados</h3>
-                  {['grafico', 'pdf', 'youtube'].map(tipo => {
+                  {['lamina', 'grafico', 'pdf', 'youtube'].map(tipo => {
                     const items = recursos.filter(r => r.tipo === tipo)
                     if (items.length === 0) return null
                     const t = TIPOS.find(t => t.value === tipo)!
                     return (
                       <div key={tipo} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                         <div className="px-4 py-2 border-b border-white/10">
-                          <p className="text-slate-300 text-xs font-medium">{t.icon} {t.label}s</p>
+                          <p className="text-slate-300 text-xs font-medium">{t.icon} {t.label}</p>
                         </div>
                         {items.map(r => (
                           <div key={r.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-white/5 group">

@@ -224,10 +224,7 @@ export default function ChatPage() {
     const fecha = new Date(f)
     if (Number.isNaN(fecha.getTime())) return ''
     return fecha.toLocaleDateString('es', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     })
   }
 
@@ -237,6 +234,9 @@ export default function ChatPage() {
     pdf: { label: 'PDFs', icon: '📄', color: 'text-red-400' },
     youtube: { label: 'YouTube', icon: '▶️', color: 'text-red-500' },
   }
+
+  // stats se carga pero ya no se muestra en esta página (movido al admin)
+  void stats
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col">
@@ -291,14 +291,12 @@ export default function ChatPage() {
                 ? <p className="text-slate-500 text-xs px-4 py-6 text-center">No hay conversaciones anteriores</p>
                 : <div className="flex flex-col p-2">
                     {(() => {
-                      // Agrupar conversaciones por cap_id
                       const grupos: Record<string, Conversacion[]> = {}
                       for (const conv of historial) {
                         const key = conv.cap_id || 'sin_categoria'
                         if (!grupos[key]) grupos[key] = []
                         grupos[key].push(conv)
                       }
-                      // Orden: cap1..cap8 primero, luego sin_categoria
                       const capNombres: Record<string, string> = {
                         cap1: '01 Introducción', cap2: '02 Encuadre',
                         cap3: '03 Escucha', cap4: '04 Comprensión',
@@ -314,10 +312,9 @@ export default function ChatPage() {
                           const abierto = acordeonesAbiertos[key] ?? false
                           return (
                             <div key={key} className="mb-1">
-                              {/* Cabecera del acordeón */}
                               <button
                                 onClick={() => toggleAcordeon(key)}
-                                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition group">
+                                className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-white/5 transition">
                                 <span className="text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider">
                                   {capNombres[key] || key}
                                 </span>
@@ -332,7 +329,6 @@ export default function ChatPage() {
                                   </svg>
                                 </div>
                               </button>
-                              {/* Conversaciones del grupo */}
                               {abierto && (
                                 <div className="flex flex-col gap-0.5 mt-0.5 ml-1">
                                   {convs.map((conv: Conversacion) => {
@@ -380,28 +376,6 @@ export default function ChatPage() {
             {/* Mapa del curso */}
             {mensajes.length === 0 && (
               <div className="max-w-6xl mx-auto">
-
-                {/* Contador tokens — solo Moisés */}
-                {usuario?.id === 1 && stats && (
-                  <div className="mb-5 flex flex-wrap items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                    <div>
-                      <p className="text-slate-500 text-xs leading-none mb-1">Total tokens</p>
-                      <p className="text-slate-300 text-xs font-mono font-semibold">{stats.totales.tokensTotal.toLocaleString()}</p>
-                    </div>
-                    <div className="w-px h-6 bg-white/10 hidden sm:block"/>
-                    <div>
-                      <p className="text-slate-500 text-xs leading-none mb-1">Costo total</p>
-                      <p className="text-emerald-400 text-xs font-mono font-semibold">${stats.totales.costoUSD.toFixed(4)}</p>
-                    </div>
-                    <div className="w-px h-6 bg-white/10 hidden sm:block"/>
-                    {stats.usuarios.map(u => (
-                      <div key={u.id}>
-                        <p className="text-slate-500 text-xs leading-none mb-1">{u.nombre.split(' ')[0]}</p>
-                        <p className="text-slate-400 text-xs font-mono">{u.tokensTotal.toLocaleString()} · <span className="text-emerald-500">${u.costoUSD.toFixed(4)}</span></p>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 <div className="text-center mb-6">
                   <p className="text-slate-400 text-sm">Selecciona un capítulo o lección para comenzar</p>
@@ -575,21 +549,17 @@ export default function ChatPage() {
           onClick={() => setModalInfo(null)}>
           <div className="bg-slate-800 border border-white/15 rounded-2xl w-full max-w-lg shadow-2xl"
             onClick={e => e.stopPropagation()}>
-            {/* Header modal */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
               <div>
                 <h3 className="text-white font-semibold text-sm">{modalInfo.nombre}</h3>
                 <p className="text-slate-400 text-xs mt-0.5">Recursos de referencia</p>
               </div>
-              <button onClick={() => setModalInfo(null)}
-                className="text-slate-400 hover:text-white transition">
+              <button onClick={() => setModalInfo(null)} className="text-slate-400 hover:text-white transition">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             </div>
-
-            {/* Contenido modal */}
             <div className="px-5 py-4 space-y-4 max-h-96 overflow-y-auto">
               {cargandoRecursos ? (
                 <p className="text-slate-400 text-sm text-center py-4">Cargando recursos...</p>
