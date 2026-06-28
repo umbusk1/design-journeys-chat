@@ -250,9 +250,8 @@ export default function ChatPage() {
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <span className="text-xl">🌿</span>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => usuario && iniciarConversacion(usuario.id)}
             className="flex items-center gap-3 hover:opacity-80 transition">
             <span className="text-xl">🌿</span>
             <div className="text-left">
