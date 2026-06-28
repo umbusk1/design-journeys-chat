@@ -258,8 +258,9 @@ export default function ChatPage() {
             <div className="text-left">
               <h1 className="text-white font-semibold text-sm">Design Journeys — Admin</h1>
               <p className="text-slate-400 text-xs">Gestión de recursos por lección</p>
-            </div>
+            </div>         
           </button>
+        </div>        
         <div className="flex items-center gap-3">
           {usuario?.id === 1 && (
             <button onClick={() => router.push('/admin')}
