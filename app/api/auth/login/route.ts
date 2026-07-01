@@ -13,12 +13,20 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Buscar usuario
-    const usuarios = await sql`
-      SELECT id, nombre, email, password_hash
-      FROM usuarios
-      WHERE email = ${email.toLowerCase()}
-    `
+    // Si contiene @, buscar por email; si no, buscar por username (ej: dj-user)
+    const esEmail = email.includes('@')
+
+    const usuarios = esEmail
+      ? await sql`
+          SELECT id, nombre, email, password_hash, rol
+          FROM usuarios
+          WHERE email = ${email.toLowerCase()}
+        `
+      : await sql`
+          SELECT id, nombre, email, password_hash, rol
+          FROM usuarios
+          WHERE username = ${email.toLowerCase()}
+        `
 
     if (usuarios.length === 0) {
       return NextResponse.json(
@@ -29,7 +37,6 @@ export async function POST(req: NextRequest) {
 
     const usuario = usuarios[0]
 
-    // Verificar contraseña
     const passwordValida = await bcrypt.compare(password, usuario.password_hash)
 
     if (!passwordValida) {
@@ -44,6 +51,7 @@ export async function POST(req: NextRequest) {
         id: usuario.id,
         nombre: usuario.nombre,
         email: usuario.email,
+        rol: usuario.rol,       // ← nuevo campo
       },
     })
   } catch (error) {

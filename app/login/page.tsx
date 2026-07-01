@@ -51,13 +51,13 @@ export default function LoginPage() {
         {/* Formulario */}
         <div className="space-y-4">
           <div>
-            <label className="text-slate-300 text-sm block mb-1">Correo electrónico</label>
+            <label className="text-slate-300 text-sm block mb-1">Email o usuario</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={e => setEmail(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="tu@email.com"
+              placeholder="Email o usuario"
               className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-400 transition"
             />
           </div>

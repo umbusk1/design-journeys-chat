@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 
 interface Mensaje { rol: 'user' | 'assistant'; contenido: string }
-interface Usuario { id: number; nombre: string; email: string }
+interface Usuario { id: number; nombre: string; email: string; rol?: string }
 interface Conversacion {
   id: number; titulo: string; created_at: string
   total_mensajes: number; ultimo_mensaje: string
@@ -115,15 +115,21 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
 
+  // ── Rol del usuario ──────────────────────────────────────────────
+  const esVisor = usuario?.rol === 'visor'
+
   useEffect(() => {
     const u = localStorage.getItem('usuario')
     if (!u) { router.push('/login'); return }
     const p = JSON.parse(u)
     setUsuario(p)
-    cargarHistorial(p.id)
-    iniciarConversacion(p.id)
     cargarConteoRecursos()
-    if (p.id === 1) cargarStats()
+    // El visor solo necesita los recursos, no el historial ni el chat
+    if (p.rol !== 'visor') {
+      cargarHistorial(p.id)
+      iniciarConversacion(p.id)
+      if (p.id === 1) cargarStats()
+    }
   }, [])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [mensajes])
@@ -235,7 +241,6 @@ export default function ChatPage() {
     youtube: { label: 'YouTube', icon: '▶️', color: 'text-red-500' },
   }
 
-  // stats se carga pero ya no se muestra en esta página (movido al admin)
   void stats
 
   return (
@@ -244,33 +249,42 @@ export default function ChatPage() {
       {/* Header */}
       <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between sticky top-0 bg-slate-900/80 backdrop-blur-sm z-20">
         <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarAbierto(!sidebarAbierto)}
-            className="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
+          {/* Hamburger — oculto para visor */}
+          {!esVisor && (
+            <button onClick={() => setSidebarAbierto(!sidebarAbierto)}
+              className="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+          )}
+          {/* Logo — no inicia conversación para visor */}
           <button
-            onClick={() => usuario && iniciarConversacion(usuario.id)}
-            className="flex items-center gap-3 hover:opacity-80 transition">
+            onClick={() => !esVisor && usuario && iniciarConversacion(usuario.id)}
+            className={`flex items-center gap-3 ${!esVisor ? 'hover:opacity-80' : 'cursor-default'} transition`}>
             <span className="text-xl">🌿</span>
             <div className="text-left">
-              <h1 className="text-white font-semibold text-sm">Design Journeys — Admin</h1>
-              <p className="text-slate-400 text-xs">Gestión de recursos por lección</p>
-            </div>         
+              <h1 className="text-white font-semibold text-sm">Design Journeys</h1>
+              <p className="text-slate-400 text-xs">
+                {esVisor ? 'Materiales del curso' : 'Diseño Sistémico'}
+              </p>
+            </div>
           </button>
-        </div>        
+        </div>
         <div className="flex items-center gap-3">
-          {usuario?.id === 1 && (
+          {/* Admin y Nueva — ocultos para visor */}
+          {!esVisor && usuario?.id === 1 && (
             <button onClick={() => router.push('/admin')}
               className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
               ⚙️ Admin
             </button>
           )}
-          <button onClick={() => usuario && iniciarConversacion(usuario.id)}
-            className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
-            + Nueva
-          </button>
+          {!esVisor && (
+            <button onClick={() => usuario && iniciarConversacion(usuario.id)}
+              className="text-slate-400 hover:text-emerald-400 text-xs transition border border-white/10 hover:border-emerald-500/30 rounded-lg px-3 py-1.5">
+              + Nueva
+            </button>
+          )}
           <span className="text-slate-300 text-sm hidden sm:block">{usuario?.nombre}</span>
           <button onClick={cerrarSesion} className="text-slate-500 hover:text-slate-300 text-xs transition">Salir</button>
         </div>
@@ -278,8 +292,8 @@ export default function ChatPage() {
 
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Sidebar overlay */}
-        {sidebarAbierto && (
+        {/* Sidebar — oculto completamente para visor */}
+        {!esVisor && sidebarAbierto && (
           <>
             <div className="fixed inset-0 bg-black/50 z-10 lg:hidden" onClick={() => setSidebarAbierto(false)} />
             <aside className="absolute lg:relative w-72 h-full border-r border-white/10 bg-slate-900 lg:bg-slate-900/60 flex flex-col overflow-y-auto flex-shrink-0 z-20">
@@ -382,39 +396,69 @@ export default function ChatPage() {
               <div className="max-w-6xl mx-auto">
 
                 <div className="text-center mb-6">
-                  <p className="text-slate-400 text-sm">Selecciona un capítulo o lección para comenzar</p>
-                  <button
-                    onClick={() => setModalAyuda(true)}
-                    className="mt-2 text-emerald-500 hover:text-emerald-400 text-xs underline underline-offset-2 transition">
-                    ¿Cómo usar esta herramienta?
-                  </button>
+                  <p className="text-slate-400 text-sm">
+                    {esVisor
+                      ? 'Haz clic en ⓘ para acceder a los materiales de cada lección'
+                      : 'Selecciona un capítulo o lección para comenzar'
+                    }
+                  </p>
+                  {/* El link de ayuda solo para usuarios con chat */}
+                  {!esVisor && (
+                    <button
+                      onClick={() => setModalAyuda(true)}
+                      className="mt-2 text-emerald-500 hover:text-emerald-400 text-xs underline underline-offset-2 transition">
+                      ¿Cómo usar esta herramienta?
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {MAPA_CURSO.map(cap => (
                     <div key={cap.num} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                      <button onClick={() => enviarTexto(cap.prompt)}
-                        className="w-full text-left px-3 py-3 hover:bg-emerald-500/10 border-b border-white/10 transition group">
-                        <div className="flex items-center gap-2">
-                          <span className="text-emerald-400 text-xs font-mono font-bold">{String(cap.num).padStart(2,'0')}</span>
-                          <span className="text-white text-xs font-semibold group-hover:text-emerald-300 transition">{cap.nombre}</span>
+
+                      {/* Encabezado de capítulo: clicable para estudiantes, estático para visor */}
+                      {esVisor ? (
+                        <div className="w-full text-left px-3 py-3 border-b border-white/10">
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-400 text-xs font-mono font-bold">{String(cap.num).padStart(2,'0')}</span>
+                            <span className="text-white text-xs font-semibold">{cap.nombre}</span>
+                          </div>
                         </div>
-                      </button>
+                      ) : (
+                        <button onClick={() => enviarTexto(cap.prompt)}
+                          className="w-full text-left px-3 py-3 hover:bg-emerald-500/10 border-b border-white/10 transition group">
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-400 text-xs font-mono font-bold">{String(cap.num).padStart(2,'0')}</span>
+                            <span className="text-white text-xs font-semibold group-hover:text-emerald-300 transition">{cap.nombre}</span>
+                          </div>
+                        </button>
+                      )}
+
                       <div className="px-2 py-2 flex flex-col gap-1">
                         {cap.lecciones.map((lec, i) => {
                           const lid = leccionId(cap.num, i)
                           const tieneRecursos = (conteoRecursos[lid] || 0) > 0
                           return (
                             <div key={i} className="flex items-center gap-1 group/lec">
-                              <button onClick={() => enviarTexto(lec.prompt)}
-                                className="flex-1 text-left text-xs text-slate-400 hover:text-emerald-300 hover:bg-white/5 rounded-lg px-2 py-1.5 transition leading-snug">
-                                {lec.nombre}
-                              </button>
+
+                              {/* Nombre de lección: clicable para estudiantes, texto para visor */}
+                              {esVisor ? (
+                                <div className="flex-1 text-xs text-slate-400 px-2 py-1.5 leading-snug">
+                                  {lec.nombre}
+                                </div>
+                              ) : (
+                                <button onClick={() => enviarTexto(lec.prompt)}
+                                  className="flex-1 text-left text-xs text-slate-400 hover:text-emerald-300 hover:bg-white/5 rounded-lg px-2 py-1.5 transition leading-snug">
+                                  {lec.nombre}
+                                </button>
+                              )}
+
+                              {/* ⓘ siempre visible para visor, hover-reveal para estudiantes */}
                               {tieneRecursos && (
                                 <button
                                   onClick={() => abrirModal(lid, lec.nombre)}
                                   title="Ver recursos"
-                                  className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/10 transition opacity-60 group-hover/lec:opacity-100">
+                                  className={`flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-slate-500 hover:text-emerald-400 hover:bg-white/10 transition ${esVisor ? 'opacity-100' : 'opacity-60 group-hover/lec:opacity-100'}`}>
                                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                                   </svg>
@@ -428,23 +472,25 @@ export default function ChatPage() {
                   ))}
                 </div>
 
-                {/* Input inline */}
-                <div className="mt-6 flex gap-3 max-w-2xl mx-auto">
-                  <input type="text" value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarTexto(input)}
-                    placeholder="O escribe tu pregunta aquí..."
-                    disabled={cargando}
-                    className="flex-1 bg-slate-700 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
-                  <button onClick={() => enviarTexto(input)} disabled={cargando || !input.trim()}
-                    className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
-                    Enviar
-                  </button>
-                </div>
+                {/* Input inline — oculto para visor */}
+                {!esVisor && (
+                  <div className="mt-6 flex gap-3 max-w-2xl mx-auto">
+                    <input type="text" value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarTexto(input)}
+                      placeholder="O escribe tu pregunta aquí..."
+                      disabled={cargando}
+                      className="flex-1 bg-slate-700 border border-white/15 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500/50 transition text-sm" />
+                    <button onClick={() => enviarTexto(input)} disabled={cargando || !input.trim()}
+                      className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-xl px-5 py-3 transition font-medium text-sm">
+                      Enviar
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Mensajes */}
+            {/* Mensajes (el visor nunca llega aquí porque mensajes siempre es []) */}
             <div className="space-y-6 max-w-3xl mx-auto mt-4">
               {mensajes.map((msg, i) => (
                 <div key={i} className={`flex ${msg.rol === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -494,7 +540,7 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input — solo cuando hay mensajes */}
+          {/* Input inferior — nunca visible para visor */}
           {mensajes.length > 0 && (
             <div className="border-t border-white/10 px-4 py-4 bg-slate-900/50 backdrop-blur-sm">
               <div className="max-w-3xl mx-auto flex gap-3">
